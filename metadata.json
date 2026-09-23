@@ -1,0 +1,6 @@
+{
+  "name": "KANG DIKIN - Dashboard Transparansi Program Lingkungan",
+  "description": "Kelola Lingkungan, Sadar Iklim dan Kesejahteraan Terintegrasi - DANA BERSAMA. Dashboard transparansi laporan Bank Sampah, Aren, Kayu, dan pemanfaatan masyarakat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
