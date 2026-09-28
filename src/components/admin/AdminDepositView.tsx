@@ -3,8 +3,9 @@ import { useApp } from '../../context/AppContext';
 import { Deposit } from '../../types';
 import { ConfirmDeleteModal } from '../modals/ConfirmDeleteModal';
 import { DepositReceiptModal } from '../modals/DepositReceiptModal';
+import { TransactionDetailModal } from '../modals/TransactionDetailModal';
 import { Pagination } from '../common/Pagination';
-import { Plus, Search, Filter, Printer } from 'lucide-react';
+import { Plus, Search, Filter, Printer, Eye } from 'lucide-react';
 
 interface AdminDepositViewProps {
   onAddDeposit: () => void;
@@ -25,6 +26,7 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
     getRWName,
     getRTName,
     isStaff,
+    isSuperAdmin,
     userProgramId,
     userProgramName,
   } = useApp();
@@ -38,6 +40,7 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
   const [search, setSearch] = useState<string>('');
   const [deletingDeposit, setDeletingDeposit] = useState<Deposit | null>(null);
   const [receiptDeposit, setReceiptDeposit] = useState<Deposit | null>(null);
+  const [detailDeposit, setDetailDeposit] = useState<Deposit | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,8 +67,17 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
       const progName = getProgramName(d.program_id).toLowerCase();
       const rwName = getRWName(d.rw_id).toLowerCase();
       const rtName = getRTName(d.rt_id).toLowerCase();
+      const citizen = (d.citizen_name || '').toLowerCase();
       const notes = (d.notes || '').toLowerCase();
-      if (!progName.includes(q) && !rwName.includes(q) && !rtName.includes(q) && !notes.includes(q)) {
+      const tx = (d.transaction_no || '').toLowerCase();
+      if (
+        !citizen.includes(q) &&
+        !tx.includes(q) &&
+        !progName.includes(q) &&
+        !rwName.includes(q) &&
+        !rtName.includes(q) &&
+        !notes.includes(q)
+      ) {
         return false;
       }
     }
@@ -193,18 +205,33 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
 
           {/* Search Query */}
           <div>
-            <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-              Cari Keterangan
+            <label className="block text-[11px] font-semibold text-stone-600 mb-1 flex items-center justify-between">
+              <span>Cari Real-Time</span>
+              {search && (
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                  {filtered.length} ditemukan
+                </span>
+              )}
             </label>
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Cari..."
+                placeholder="Nama warga, catatan, No. STR..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
+                className="w-full pl-8 pr-7 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 focus:bg-white"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold"
+                  title="Hapus pencarian"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -240,9 +267,10 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
               <tr className="bg-stone-50 border-b border-stone-200 text-xs font-semibold text-stone-600">
                 <th className="py-3 px-4 w-12 text-center">No</th>
                 <th className="py-3 px-4">Tanggal</th>
+                <th className="py-3 px-4">No Transaksi</th>
+                <th className="py-3 px-4">Warga / Penyetor</th>
                 <th className="py-3 px-4">Program</th>
-                <th className="py-3 px-4">RW</th>
-                <th className="py-3 px-4">RT</th>
+                <th className="py-3 px-4">RW / RT</th>
                 <th className="py-3 px-4 text-right">Berat</th>
                 <th className="py-3 px-4 text-center">Aksi</th>
               </tr>
@@ -257,16 +285,27 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
                     {item.date}
                     <span className="block text-[11px] text-stone-400 font-normal">{item.day}</span>
                   </td>
+                  <td className="py-3 px-4 text-xs font-mono font-semibold text-emerald-800 whitespace-nowrap">
+                    {item.transaction_no}
+                  </td>
+                  <td className="py-3 px-4 text-xs">
+                    <div className="font-semibold text-stone-900">
+                      {item.citizen_name || <span className="text-stone-400 font-normal italic">Warga Setempat</span>}
+                    </div>
+                    {item.notes && (
+                      <span className="block text-[11px] text-stone-500 line-clamp-1" title={item.notes}>
+                        {item.notes}
+                      </span>
+                    )}
+                  </td>
                   <td className="py-3 px-4 font-semibold text-stone-900">
                     {getProgramName(item.program_id)}
                   </td>
-                  <td className="py-3 px-4 text-xs font-medium text-stone-800">
-                    {getRWName(item.rw_id)}
+                  <td className="py-3 px-4 text-xs font-medium text-stone-800 whitespace-nowrap">
+                    <div>{getRWName(item.rw_id)}</div>
+                    <div className="text-[11px] text-stone-500">{getRTName(item.rt_id)}</div>
                   </td>
-                  <td className="py-3 px-4 text-xs font-medium text-stone-800">
-                    {getRTName(item.rt_id)}
-                  </td>
-                  <td className="py-3 px-4 text-right font-bold text-stone-900">
+                  <td className="py-3 px-4 text-right font-bold text-stone-900 whitespace-nowrap">
                     {item.weight.toLocaleString('id-ID')} Kg
                   </td>
                   <td className="py-3 px-4 text-center">

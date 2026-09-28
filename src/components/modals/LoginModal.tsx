@@ -58,7 +58,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         <div className="bg-emerald-50/80 px-6 py-3 border-b border-emerald-100 flex items-start gap-2.5 text-xs text-emerald-950">
           <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            Silakan masukkan email dan kata sandi Anda. Sistem akan secara otomatis mengarahkan ke bagian program yang menjadi wewenang Anda.
+            Silakan masukkan email dan kata sandi resmi Anda untuk mengakses panel pengelola sistem KANG DIKIN.
           </p>
         </div>
 
@@ -73,13 +73,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
               <label className="block font-semibold text-stone-700 mb-1.5">
-                Alamat Email Pengurus / Kader
+                Alamat Email Pengurus / Petugas
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="misal: puteripuspitaaa@gmail.com"
+                placeholder="nama@kangdikin.id"
                 required
                 autoFocus
                 autoComplete="username"

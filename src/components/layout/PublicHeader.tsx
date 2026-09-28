@@ -20,13 +20,9 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
 
   const navItems = [
     { id: 'beranda', label: 'Beranda' },
-    { id: 'biomassa', label: 'Daftar Biomassa' },
-    { id: 'program', label: 'Program' },
-    { id: 'setoran', label: 'Setoran' },
-    { id: 'penjualan', label: 'Penjualan' },
-    { id: 'pemanfaatan', label: 'Pemanfaatan' },
-    { id: 'rw', label: 'Rekap RW' },
-    { id: 'laporan', label: 'Laporan' },
+    { id: 'program', label: 'Program Lingkungan' },
+    { id: 'edukasi', label: 'Edukasi & Pemilahan' },
+    { id: 'posko', label: 'Posko Timbang RW' },
   ];
 
   const handleNavClick = (id: string) => {

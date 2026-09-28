@@ -139,12 +139,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Quick action buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => onNavigate('biomassa')}
-            className="px-3.5 py-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-800 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
-          >
-            <span>🚚 Daftar Biomassa</span>
-          </button>
+          {(!isStaff || userProgramId !== 'prog-bank-sampah') && (
+            <button
+              onClick={() => onNavigate('biomassa')}
+              className="px-3.5 py-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-800 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+            >
+              <span>🚚 {userProgramId === 'prog-aren' ? 'Timbangan Biomassa Aren' : 'Daftar Biomassa'}</span>
+            </button>
+          )}
           <button
             onClick={onOpenAddDeposit}
             className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"

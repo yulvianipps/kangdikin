@@ -191,18 +191,33 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* Search Input */}
         <div>
-          <label className="block text-xs font-semibold text-stone-600 mb-1">
-            Cari Data
+          <label className="block text-xs font-semibold text-stone-600 mb-1 flex items-center justify-between">
+            <span>Pencarian Real-Time</span>
+            {filters.searchQuery && (
+              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                Aktif
+              </span>
+            )}
           </label>
           <div className="relative">
             <input
               type="text"
-              placeholder="No. Transaksi, catatan, jenis..."
+              placeholder="Nama warga, kategori material, catatan..."
               value={filters.searchQuery}
               onChange={(e) => setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))}
-              className="w-full bg-stone-50 border border-stone-300/80 rounded-xl pl-9 pr-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none transition-all placeholder:text-stone-400"
+              className="w-full bg-stone-50 border border-stone-300/80 rounded-xl pl-9 pr-8 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none transition-all placeholder:text-stone-400"
             />
             <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+            {filters.searchQuery && (
+              <button
+                type="button"
+                onClick={() => setFilters((prev) => ({ ...prev, searchQuery: '' }))}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold"
+                title="Hapus pencarian"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
       </div>

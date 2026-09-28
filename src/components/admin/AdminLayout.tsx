@@ -41,6 +41,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const { user, isSuperAdmin, isStaff, userProgramName, logout } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const isArenStaff = isStaff && user?.assignedProgramId === 'prog-aren';
+  const isBankSampahStaff = isStaff && user?.assignedProgramId === 'prog-bank-sampah';
+
   // Define structured sidebar navigation
   const navSections = [
     {
@@ -50,13 +53,47 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       ],
     },
     {
-      title: 'DATA',
+      title: isArenStaff ? 'DATA SENTRA AREN' : isBankSampahStaff ? 'DATA BANK SAMPAH' : 'DATA',
       items: [
-        { id: 'biomassa', label: 'Daftar Biomassa', icon: Truck },
-        { id: 'program', label: 'Program', icon: FolderKanban },
-        { id: 'setoran', label: 'Setoran', icon: ArrowDownLeft },
-        { id: 'penjualan', label: 'Penjualan', icon: ArrowUpRight },
-        { id: 'pemanfaatan', label: 'Pemanfaatan', icon: HeartHandshake },
+        ...(!isBankSampahStaff
+          ? [
+              {
+                id: 'biomassa',
+                label: isArenStaff ? 'Biomassa & Timbangan Aren' : 'Daftar Biomassa',
+                icon: Truck,
+              },
+            ]
+          : []),
+        {
+          id: 'setoran',
+          label: isArenStaff
+            ? 'Setoran Bahan Aren'
+            : isBankSampahStaff
+            ? 'Setoran Bank Sampah'
+            : 'Setoran Material',
+          icon: ArrowDownLeft,
+        },
+        {
+          id: 'penjualan',
+          label: isArenStaff
+            ? 'Penjualan Produk Aren'
+            : isBankSampahStaff
+            ? 'Penjualan Daur Ulang'
+            : 'Penjualan Komoditas',
+          icon: ArrowUpRight,
+        },
+        {
+          id: 'pemanfaatan',
+          label: isArenStaff
+            ? 'Pemanfaatan Dana Aren'
+            : isBankSampahStaff
+            ? 'Pemanfaatan Bank Sampah'
+            : 'Pemanfaatan Dana',
+          icon: HeartHandshake,
+        },
+        ...(isSuperAdmin
+          ? [{ id: 'program', label: 'Master Program', icon: FolderKanban }]
+          : []),
       ],
     },
     {
@@ -77,7 +114,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     {
       title: 'LAPORAN',
       items: [
-        { id: 'laporan', label: 'Laporan', icon: BarChart3 },
+        { id: 'laporan', label: 'Laporan Keuangan', icon: BarChart3 },
         { id: 'rekap-rw', label: 'Rekap RW', icon: Users },
         { id: 'rekap-periode', label: 'Rekap Periode', icon: Calendar },
         { id: 'export', label: 'Export', icon: Download },

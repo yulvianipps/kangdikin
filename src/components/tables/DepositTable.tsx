@@ -16,6 +16,7 @@ import {
   Plus,
   ArrowUpDown,
   Inbox,
+  Search,
 } from 'lucide-react';
 
 interface DepositTableProps {
@@ -38,14 +39,37 @@ export const DepositTable: React.FC<DepositTableProps> = ({
   } = useApp();
 
   const [selectedDeposit, setSelectedDeposit] = useState<Deposit | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [sortField, setSortField] = useState<'date' | 'weight' | 'no'>('date');
   const [sortAsc, setSortAsc] = useState(false);
 
+  // Real-time search across deposits
+  const searchedDeposits = useMemo(() => {
+    if (!searchQuery.trim()) return filteredDeposits;
+    const q = searchQuery.toLowerCase().trim();
+    return filteredDeposits.filter((d) => {
+      const citizen = (d.citizen_name || '').toLowerCase();
+      const tx = (d.transaction_no || '').toLowerCase();
+      const notes = (d.notes || '').toLowerCase();
+      const prog = getProgramName(d.program_id).toLowerCase();
+      const rw = getRWName(d.rw_id).toLowerCase();
+      const rt = getRTName(d.rt_id).toLowerCase();
+      return (
+        citizen.includes(q) ||
+        tx.includes(q) ||
+        notes.includes(q) ||
+        prog.includes(q) ||
+        rw.includes(q) ||
+        rt.includes(q)
+      );
+    });
+  }, [filteredDeposits, searchQuery, getProgramName, getRWName, getRTName]);
+
   // Sorting
   const sortedDeposits = useMemo(() => {
-    return [...filteredDeposits].sort((a, b) => {
+    return [...searchedDeposits].sort((a, b) => {
       if (sortField === 'date') {
         const diff = a.date.localeCompare(b.date);
         return sortAsc ? diff : -diff;
@@ -59,7 +83,7 @@ export const DepositTable: React.FC<DepositTableProps> = ({
       }
       return 0;
     });
-  }, [filteredDeposits, sortField, sortAsc]);
+  }, [searchedDeposits, sortField, sortAsc]);
 
   // Pagination
   const totalPages = Math.ceil(sortedDeposits.length / pageSize) || 1;
@@ -70,8 +94,8 @@ export const DepositTable: React.FC<DepositTableProps> = ({
 
   // Summary row
   const totalWeightFiltered = useMemo(() => {
-    return filteredDeposits.reduce((sum, d) => sum + (Number(d.weight) || 0), 0);
-  }, [filteredDeposits]);
+    return searchedDeposits.reduce((sum, d) => sum + (Number(d.weight) || 0), 0);
+  }, [searchedDeposits]);
 
   const handleSort = (field: 'date' | 'weight' | 'no') => {
     if (sortField === field) {
@@ -84,8 +108,9 @@ export const DepositTable: React.FC<DepositTableProps> = ({
 
   // Export handlers
   const handleExportCSV = () => {
-    const data = filteredDeposits.map((d) => ({
+    const data = searchedDeposits.map((d) => ({
       'No Transaksi': d.transaction_no,
+      'Warga / Penyetor': d.citizen_name || '-',
       'Program': getProgramName(d.program_id),
       'Hari': d.day,
       'Tanggal': d.date,
@@ -98,8 +123,9 @@ export const DepositTable: React.FC<DepositTableProps> = ({
   };
 
   const handleExportExcel = () => {
-    const data = filteredDeposits.map((d) => ({
+    const data = searchedDeposits.map((d) => ({
       'No Transaksi': d.transaction_no,
+      'Warga / Penyetor': d.citizen_name || '-',
       'Program': getProgramName(d.program_id),
       'Hari': d.day,
       'Tanggal': d.date,
@@ -112,10 +138,11 @@ export const DepositTable: React.FC<DepositTableProps> = ({
   };
 
   const handlePrint = () => {
-    const headers = ['No', 'Hari/Tanggal', 'Program', 'RW/RT', 'Berat (Kg)', 'Keterangan'];
-    const rows = filteredDeposits.map((d) => [
+    const headers = ['No', 'Hari/Tanggal', 'Warga / Penyetor', 'Program', 'RW/RT', 'Berat (Kg)', 'Keterangan'];
+    const rows = searchedDeposits.map((d) => [
       d.transaction_no,
       `${d.day}, ${formatIndonesianDate(d.date)}`,
+      d.citizen_name || '-',
       getProgramName(d.program_id),
       `${getRWName(d.rw_id)} / ${getRTName(d.rt_id)}`,
       formatWeight(d.weight),
@@ -123,7 +150,7 @@ export const DepositTable: React.FC<DepositTableProps> = ({
     ]);
     printFormattedReport(
       'LAPORAN TRANSAKSI SETORAN MASYARAKAT',
-      `Rekapitulasi ${filteredDeposits.length} setoran terkumpul, total: ${formatWeight(totalWeightFiltered)}`,
+      `Rekapitulasi ${searchedDeposits.length} setoran terkumpul, total: ${formatWeight(totalWeightFiltered)}`,
       headers,
       rows
     );
@@ -132,14 +159,14 @@ export const DepositTable: React.FC<DepositTableProps> = ({
   return (
     <div className="bg-white rounded-2xl border border-stone-200/90 shadow-xs overflow-hidden">
       {/* Table Header Controls */}
-      <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-stone-50/50">
+      <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-stone-50/50">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-stone-900">
               Modul Setoran Masyarakat
             </h3>
             <span className="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
-              {filteredDeposits.length} Data
+              {searchedDeposits.length} Data
             </span>
           </div>
           <p className="text-xs text-stone-500 mt-0.5">
@@ -147,7 +174,35 @@ export const DepositTable: React.FC<DepositTableProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          {/* Real-time search bar */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari nama warga, No. STR..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all placeholder:text-stone-400"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold"
+                title="Hapus pencarian"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {/* Export buttons - Khusus Admin */}
           {isAdmin && (
             <div className="flex items-center gap-1.5">
@@ -212,6 +267,7 @@ export const DepositTable: React.FC<DepositTableProps> = ({
                   <ArrowUpDown className="w-3 h-3 text-stone-400" />
                 </div>
               </th>
+              <th className="py-3 px-4 whitespace-nowrap">Warga / Penyetor</th>
               <th className="py-3 px-4 whitespace-nowrap">Program</th>
               <th className="py-3 px-4 whitespace-nowrap">RW</th>
               <th className="py-3 px-4 whitespace-nowrap">RT</th>
@@ -231,12 +287,14 @@ export const DepositTable: React.FC<DepositTableProps> = ({
           <tbody className="divide-y divide-stone-200/80">
             {paginatedDeposits.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-12 text-center text-stone-500">
+                <td colSpan={9} className="py-12 text-center text-stone-500">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Inbox className="w-8 h-8 text-stone-300" />
                     <span className="font-semibold text-sm">Belum ada data setoran</span>
                     <span className="text-xs text-stone-400 max-w-sm">
-                      Belum ada laporan setoran untuk periode atau filter yang Anda pilih.
+                      {searchQuery
+                        ? `Tidak ada setoran yang cocok dengan pencarian "${searchQuery}".`
+                        : 'Belum ada laporan setoran untuk periode atau filter yang Anda pilih.'}
                     </span>
                   </div>
                 </td>
@@ -254,6 +312,9 @@ export const DepositTable: React.FC<DepositTableProps> = ({
                   </td>
                   <td className="py-3 px-4 font-mono font-medium text-stone-600 whitespace-nowrap">
                     {item.transaction_no}
+                  </td>
+                  <td className="py-3 px-4 font-semibold text-stone-900 whitespace-nowrap">
+                    {item.citizen_name || <span className="text-stone-400 font-normal italic">Warga Setempat</span>}
                   </td>
                   <td className="py-3 px-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">

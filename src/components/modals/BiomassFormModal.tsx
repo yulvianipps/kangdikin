@@ -32,7 +32,11 @@ export const BiomassFormModal: React.FC<BiomassFormModalProps> = ({
     biomassTypes,
     addBiomassPartner,
     addBiomassType,
+    isStaff,
+    user,
   } = useApp();
+
+  const isArenStaff = isStaff && user?.assignedProgramId === 'prog-aren';
 
   const [date, setDate] = useState(
     initialData ? initialData.date : new Date().toISOString().slice(0, 10)
@@ -64,8 +68,7 @@ export const BiomassFormModal: React.FC<BiomassFormModalProps> = ({
   // Kelompok Mitra / Stokpile
   const defaultPartner =
     initialData?.group_category ||
-    biomassPartners[0]?.name ||
-    'Stokpile Indramayu';
+    (isArenStaff ? 'Fasprod Ciamis' : (biomassPartners[0]?.name || 'Stokpile Indramayu'));
   const [groupCategory, setGroupCategory] = useState(defaultPartner);
   const [customGroup, setCustomGroup] = useState('');
   const [isCustomGroup, setIsCustomGroup] = useState(false);
@@ -73,8 +76,7 @@ export const BiomassFormModal: React.FC<BiomassFormModalProps> = ({
   // Jenis Biomassa (Aren, Kayu, dll)
   const defaultType =
     initialData?.biomass_type ||
-    biomassTypes[0]?.name ||
-    'Aren';
+    (isArenStaff ? 'Serbuk Aren' : (biomassTypes[0]?.name || 'Aren'));
   const [biomassType, setBiomassType] = useState(defaultType);
   const [customType, setCustomType] = useState('');
   const [isCustomType, setIsCustomType] = useState(false);

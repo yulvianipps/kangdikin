@@ -252,16 +252,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
       if (saved) {
         const parsed: AppAccount[] = JSON.parse(saved);
-        const hasPuteri = parsed.some(
-          (a) => a.email.toLowerCase() === 'puteripuspitaaa@gmail.com'
-        );
-        if (!hasPuteri) {
-          const puteriAcc = PREDEFINED_ACCOUNTS.find(
-            (a) => a.email.toLowerCase() === 'puteripuspitaaa@gmail.com'
-          );
-          if (puteriAcc) parsed.unshift(puteriAcc);
-        }
-        return parsed;
+        const merged = [...parsed];
+        PREDEFINED_ACCOUNTS.forEach((pre) => {
+          const idx = merged.findIndex((a) => a.email.toLowerCase() === pre.email.toLowerCase());
+          if (idx === -1) {
+            merged.push(pre);
+          } else {
+            // Update assignedProgramId & badge if predefined has it
+            merged[idx] = { ...merged[idx], ...pre };
+          }
+        });
+        return merged;
       }
       return PREDEFINED_ACCOUNTS;
     } catch {
@@ -326,7 +327,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [biomassEntries, setBiomassEntries] = useState<BiomassEntry[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.BIOMASS);
-      return saved ? JSON.parse(saved) : INITIAL_BIOMASS_ENTRIES;
+      if (saved) {
+        const parsed: BiomassEntry[] = JSON.parse(saved);
+        if (!parsed.some((e) => e.id === 'bio-20260927-01')) {
+          const ciamisEntry = INITIAL_BIOMASS_ENTRIES.find((e) => e.id === 'bio-20260927-01');
+          if (ciamisEntry) {
+            return [ciamisEntry, ...parsed];
+          }
+        }
+        return parsed;
+      }
+      return INITIAL_BIOMASS_ENTRIES;
     } catch {
       return INITIAL_BIOMASS_ENTRIES;
     }
@@ -979,12 +990,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (filters.searchQuery.trim()) {
         const query = filters.searchQuery.toLowerCase();
         const rwName = getRWName(d.rw_id).toLowerCase();
+        const rtName = getRTName(d.rt_id).toLowerCase();
         const progName = getProgramName(d.program_id).toLowerCase();
+        const citizen = (d.citizen_name || '').toLowerCase();
         const match =
+          citizen.includes(query) ||
           d.transaction_no.toLowerCase().includes(query) ||
           d.day.toLowerCase().includes(query) ||
           (d.notes && d.notes.toLowerCase().includes(query)) ||
           rwName.includes(query) ||
+          rtName.includes(query) ||
           progName.includes(query);
         if (!match) return false;
       }

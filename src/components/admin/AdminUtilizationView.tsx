@@ -19,6 +19,7 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
     utilizations,
     programs,
     rws,
+    utilizationTypes,
     deleteUtilization,
     getProgramName,
     getRWName,
@@ -31,6 +32,7 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
     isStaff && userProgramId ? userProgramId : 'all'
   );
   const [filterRW, setFilterRW] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [deletingUtil, setDeletingUtil] = useState<Utilization | null>(null);
 
@@ -40,21 +42,39 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterProgram, filterRW, search]);
+  }, [filterProgram, filterRW, filterCategory, search]);
 
   const effectiveProgramFilter = isStaff && userProgramId ? userProgramId : filterProgram;
+
+  // Extract unique utilization categories
+  const availableCategories = Array.from(
+    new Set([
+      ...utilizationTypes.map((ut) => ut.name),
+      ...utilizations.map((u) => u.type),
+    ])
+  ).filter(Boolean);
 
   const filtered = utilizations.filter((u) => {
     if (isStaff && userProgramId && u.program_id !== userProgramId) return false;
     if (effectiveProgramFilter !== 'all' && u.program_id !== effectiveProgramFilter) return false;
     if (filterRW !== 'all' && u.rw_id !== filterRW) return false;
+    if (filterCategory !== 'all' && u.type !== filterCategory) return false;
     if (search) {
       const q = search.toLowerCase();
       const progName = getProgramName(u.program_id).toLowerCase();
+      const rwName = getRWName(u.rw_id).toLowerCase();
       const type = u.type.toLowerCase();
       const desc = (u.description || '').toLowerCase();
       const recipient = (u.recipient || '').toLowerCase();
-      if (!progName.includes(q) && !type.includes(q) && !desc.includes(q) && !recipient.includes(q)) {
+      const tx = (u.transaction_no || '').toLowerCase();
+      if (
+        !recipient.includes(q) &&
+        !type.includes(q) &&
+        !desc.includes(q) &&
+        !tx.includes(q) &&
+        !progName.includes(q) &&
+        !rwName.includes(q)
+      ) {
         return false;
       }
     }
@@ -95,57 +115,124 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
       </div>
 
       {/* Filter and Summary */}
-      <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <div>
-            <select
-              value={effectiveProgramFilter}
-              onChange={(e) => setFilterProgram(e.target.value)}
-              disabled={isStaff && !!userProgramId}
-              className={`px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 ${
-                isStaff && !!userProgramId ? 'bg-stone-100 text-stone-600 cursor-not-allowed' : ''
-              }`}
-            >
-              {!isStaff && <option value="all">Semua Program</option>}
-              {programs
-                .filter((p) => (isStaff && userProgramId ? p.id === userProgramId : true))
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
+      <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            {/* Program Filter */}
+            <div>
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                Program {isStaff && <span className="text-amber-700 font-bold">(Terkunci)</span>}
+              </label>
+              <select
+                value={effectiveProgramFilter}
+                onChange={(e) => setFilterProgram(e.target.value)}
+                disabled={isStaff && !!userProgramId}
+                className={`px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 ${
+                  isStaff && !!userProgramId ? 'bg-stone-100 text-stone-600 cursor-not-allowed' : ''
+                }`}
+              >
+                {!isStaff && <option value="all">Semua Program</option>}
+                {programs
+                  .filter((p) => (isStaff && userProgramId ? p.id === userProgramId : true))
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* RW Filter */}
+            <div>
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                Wilayah RW
+              </label>
+              <select
+                value={filterRW}
+                onChange={(e) => setFilterRW(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="all">Semua RW</option>
+                {rws.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    RW {r.number} - {r.name}
                   </option>
                 ))}
-            </select>
+              </select>
+            </div>
+
+            {/* Kategori Pemanfaatan Filter */}
+            <div>
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                Kategori Pemanfaatan
+              </label>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="all">Semua Kategori ({availableCategories.length})</option>
+                {availableCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Real-Time Search */}
+            <div className="w-full sm:w-72">
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1 flex items-center justify-between">
+                <span>Cari Real-Time</span>
+                {search && (
+                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {filtered.length} ditemukan
+                  </span>
+                )}
+              </label>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Nama warga penerima, jenis, No. PMF..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-8 pr-7 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 focus:bg-white"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold"
+                    title="Hapus pencarian"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {(filterProgram !== 'all' || filterRW !== 'all' || filterCategory !== 'all' || search) && (
+              <div className="self-end pb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterProgram('all');
+                    setFilterRW('all');
+                    setFilterCategory('all');
+                    setSearch('');
+                  }}
+                  className="text-xs text-stone-500 hover:text-stone-800 underline"
+                >
+                  Reset Filter
+                </button>
+              </div>
+            )}
           </div>
 
-          <div>
-            <select
-              value={filterRW}
-              onChange={(e) => setFilterRW(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
-            >
-              <option value="all">Semua RW</option>
-              {rws.map((r) => (
-                <option key={r.id} value={r.id}>
-                  RW {r.number}
-                </option>
-              ))}
-            </select>
+          <div className="text-xs text-stone-600 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
+            Total Penyaluran: <strong className="text-emerald-800 font-bold">{formatRupiah(totalAmount)}</strong>
           </div>
-
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Cari keterangan penerima..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
-            />
-          </div>
-        </div>
-
-        <div className="text-xs text-stone-600">
-          Total Penyaluran: <strong className="text-emerald-800">{formatRupiah(totalAmount)}</strong>
         </div>
       </div>
 
@@ -157,11 +244,12 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
               <tr className="bg-stone-50 border-b border-stone-200 text-xs font-semibold text-stone-600">
                 <th className="py-3 px-4 w-12 text-center">No</th>
                 <th className="py-3 px-4">Tanggal</th>
+                <th className="py-3 px-4">No Transaksi</th>
+                <th className="py-3 px-4">Penerima Manfaat / Warga</th>
                 <th className="py-3 px-4">Program</th>
                 <th className="py-3 px-4">RW</th>
-                <th className="py-3 px-4">Jenis</th>
+                <th className="py-3 px-4">Jenis Pemanfaatan</th>
                 <th className="py-3 px-4 text-right">Jumlah</th>
-                <th className="py-3 px-4 max-w-xs">Keterangan</th>
                 <th className="py-3 px-4 text-center">Aksi</th>
               </tr>
             </thead>
@@ -173,6 +261,20 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
                   </td>
                   <td className="py-3 px-4 text-xs font-medium text-stone-700 whitespace-nowrap">
                     {item.date}
+                    <span className="block text-[11px] text-stone-400 font-normal">{item.day}</span>
+                  </td>
+                  <td className="py-3 px-4 text-xs font-mono font-semibold text-emerald-800 whitespace-nowrap">
+                    {item.transaction_no}
+                  </td>
+                  <td className="py-3 px-4 text-xs">
+                    <div className="font-semibold text-stone-900">
+                      {item.recipient || <span className="text-stone-400 font-normal italic">Warga RW {getRWName(item.rw_id)}</span>}
+                    </div>
+                    {item.description && (
+                      <span className="block text-[11px] text-stone-500 line-clamp-1" title={item.description}>
+                        {item.description}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 font-semibold text-stone-900">
                     {getProgramName(item.program_id)}
@@ -185,16 +287,8 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
                       {item.type}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right font-bold text-stone-900">
+                  <td className="py-3 px-4 text-right font-bold text-stone-900 whitespace-nowrap">
                     {formatRupiah(item.amount)}
-                  </td>
-                  <td className="py-3 px-4 text-xs text-stone-600 max-w-xs line-clamp-2">
-                    {item.description || '-'}
-                    {item.recipient && (
-                      <span className="block text-[11px] text-stone-400 font-normal">
-                        Penerima: {item.recipient}
-                      </span>
-                    )}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <div className="inline-flex items-center gap-1.5">

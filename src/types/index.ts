@@ -54,6 +54,7 @@ export interface Deposit {
   day: string;  // Senin, Selasa, etc.
   rw_id: string;
   rt_id: string;
+  citizen_name?: string; // Nama Warga / Penyetor
   weight: number; // in Kg
   notes?: string;
   created_by: string;

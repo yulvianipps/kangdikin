@@ -49,7 +49,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onSelectTab, onOpenL
           {/* Navigasi Cepat Halaman */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-200 mb-3">
-              Navigasi Halaman
+              Informasi Publik
             </h4>
             <ul className="space-y-2 text-sm text-stone-400">
               <li>
@@ -70,42 +70,18 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onSelectTab, onOpenL
               </li>
               <li>
                 <button
-                  onClick={() => handleNav('setoran')}
+                  onClick={() => handleNav('edukasi')}
                   className="hover:text-emerald-400 transition-colors text-left"
                 >
-                  Buku Setoran Warga
+                  Edukasi & Pemilahan Sampah
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => handleNav('penjualan')}
+                  onClick={() => handleNav('posko')}
                   className="hover:text-emerald-400 transition-colors text-left"
                 >
-                  Penjualan Komoditas
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleNav('pemanfaatan')}
-                  className="hover:text-emerald-400 transition-colors text-left"
-                >
-                  Penyaluran Dana Bersama
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleNav('rw')}
-                  className="hover:text-emerald-400 transition-colors text-left"
-                >
-                  Rekap Kontribusi RW
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleNav('laporan')}
-                  className="hover:text-emerald-400 transition-colors text-left"
-                >
-                  Laporan Keuangan
+                  Jadwal & Posko Timbang RW
                 </button>
               </li>
             </ul>
@@ -114,14 +90,14 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onSelectTab, onOpenL
           {/* Transparansi & Akses Admin */}
           <div className="space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-200 mb-3">
-              Prinsip Tata Kelola
+              Tata Kelola & Privasi
             </h4>
             <div className="p-3.5 rounded-xl bg-stone-800/60 border border-stone-700/60 space-y-2">
               <div className="text-xs font-semibold text-emerald-300">
-                Transparansi Terbuka
+                Perlindungan Data Warga
               </div>
               <p className="text-xs text-stone-400 leading-normal">
-                Setiap kilogram setoran dan rupiah pemanfaatan dicatat secara realtime dan dapat dipantau oleh seluruh lapisan masyarakat.
+                Informasi program dan edukasi terbuka untuk warga umum. Buku transaksi perorangan, nota penjualan, dan logistik dikelola secara aman melalui portal pengurus.
               </p>
               {onOpenLogin && (
                 <div className="pt-2 border-t border-stone-700/40">
@@ -129,7 +105,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onSelectTab, onOpenL
                     onClick={onOpenLogin}
                     className="text-xs text-emerald-400 hover:text-emerald-300 underline font-medium"
                   >
-                    Portal Masuk Pengurus & Kader &rarr;
+                    Portal Masuk Pengurus & Petugas &rarr;
                   </button>
                 </div>
               )}

@@ -4,7 +4,7 @@ import { TreePine, Zap, Droplets, CloudFog, Search, MapPin, ArrowRight } from 'l
 import { formatRupiah } from '../../utils/dateUtils';
 
 interface EcoImpactCalculatorProps {
-  onNavigateTab: (tab: string) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const EcoImpactCalculator: React.FC<EcoImpactCalculatorProps> = ({ onNavigateTab }) => {
@@ -218,12 +218,12 @@ export const EcoImpactCalculator: React.FC<EcoImpactCalculatorProps> = ({ onNavi
           </div>
 
           <div className="p-4 rounded-2xl bg-stone-100/70 border border-stone-200 flex flex-col justify-between">
-            <div className="text-xs text-stone-600 font-medium">Lihat Riwayat Lengkap</div>
+            <div className="text-xs text-stone-600 font-medium">Jadwal & Lokasi Posko</div>
             <button
-              onClick={() => onNavigateTab('setoran')}
+              onClick={() => onNavigateTab && onNavigateTab('posko')}
               className="inline-flex items-center justify-between w-full px-3 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs mt-2"
             >
-              <span>Buka Buku Setoran</span>
+              <span>Buka Jadwal Posko RW</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

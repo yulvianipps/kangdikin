@@ -7,13 +7,9 @@ import { PublicHeader } from './components/layout/PublicHeader';
 import { PublicFooter } from './components/layout/PublicFooter';
 import { PublicLandingView } from './components/public/PublicLandingView';
 import { PublicProgramsView } from './components/public/PublicProgramsView';
-import { PublicBiomassView } from './components/public/PublicBiomassView';
-import { DepositTable } from './components/tables/DepositTable';
-import { SaleTable } from './components/tables/SaleTable';
-import { UtilizationTable } from './components/tables/UtilizationTable';
-import { RWSummarySection } from './components/dashboard/RWSummarySection';
-import { PeriodReportSection } from './components/dashboard/PeriodReportSection';
-import { FilterBar } from './components/common/FilterBar';
+import { PublicEducationView } from './components/public/PublicEducationView';
+import { PublicPoskoView } from './components/public/PublicPoskoView';
+import { PublicRestrictedAccessView } from './components/public/PublicRestrictedAccessView';
 
 // Admin components
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -58,9 +54,7 @@ const MainContent: React.FC = () => {
   }, [isAdmin]);
 
   // Public active tab
-  const [publicTab, setPublicTab] = useState<
-    'beranda' | 'biomassa' | 'program' | 'setoran' | 'penjualan' | 'pemanfaatan' | 'rw' | 'laporan'
-  >('beranda');
+  const [publicTab, setPublicTab] = useState<string>('beranda');
 
   // Admin active menu
   const [adminMenu, setAdminMenu] = useState<string>('dashboard');
@@ -289,9 +283,8 @@ const MainContent: React.FC = () => {
       <PublicHeader
         currentTab={publicTab}
         onSelectTab={(tab) => {
-          if (['beranda', 'biomassa', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
-            setPublicTab(tab as any);
-          }
+          setPublicTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onSwitchToAdmin={() => setViewMode('admin')}
         onOpenLogin={() => setShowLoginModal(true)}
@@ -302,108 +295,42 @@ const MainContent: React.FC = () => {
         {publicTab === 'beranda' && (
           <PublicLandingView
             onNavigate={(tab) => {
-              if (['beranda', 'biomassa', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
-                setPublicTab(tab as any);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
+              setPublicTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
         )}
-
-        {publicTab === 'biomassa' && <PublicBiomassView />}
 
         {publicTab === 'program' && (
           <PublicProgramsView
             onNavigateTab={(tab) => {
-              if (['setoran', 'penjualan', 'pemanfaatan'].includes(tab)) {
-                setPublicTab(tab as any);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
+              setPublicTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
         )}
 
-        {publicTab === 'setoran' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif">
-                Buku Setoran Material Warga
-              </h1>
-              <p className="text-sm text-stone-500 mt-1">
-                Catatan publik transparansi volume setoran daur ulang dan agroforestri per RT/RW.
-              </p>
-            </div>
-            <FilterBar />
-            <DepositTable />
-          </div>
-        )}
+        {publicTab === 'edukasi' && <PublicEducationView />}
 
-        {publicTab === 'penjualan' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif">
-                Hasil Penjualan Komoditas
-              </h1>
-              <p className="text-sm text-stone-500 mt-1">
-                Transparansi penerimaan kas dari penjualan material terpilah dan hasil panen komunitas.
-              </p>
-            </div>
-            <FilterBar />
-            <SaleTable />
-          </div>
-        )}
+        {publicTab === 'posko' && <PublicPoskoView />}
 
-        {publicTab === 'pemanfaatan' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif">
-                Penyaluran Pemanfaatan Dana Bersama
-              </h1>
-              <p className="text-sm text-stone-500 mt-1">
-                Laporan terbuka alokasi dana untuk bantuan sosial, program lingkungan, dan kemaslahatan warga.
-              </p>
-            </div>
-            <FilterBar />
-            <UtilizationTable />
-          </div>
-        )}
-
-        {publicTab === 'rw' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif">
-                Rekapitulasi Partisipasi Per RW
-              </h1>
-              <p className="text-sm text-stone-500 mt-1">
-                Capaian gotong royong dan kontribusi pemilahan warga di tiap rukun warga.
-              </p>
-            </div>
-            <RWSummarySection />
-          </div>
-        )}
-
-        {publicTab === 'laporan' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif">
-                Laporan Keuangan & Kas Bersama
-              </h1>
-              <p className="text-sm text-stone-500 mt-1">
-                Neraca keuangan transparan dan perkembangan saldo dana bersama desa.
-              </p>
-            </div>
-            <PeriodReportSection />
-          </div>
+        {/* Akses Terbatas untuk Buku Transaksi / Data Internal Petugas */}
+        {['setoran', 'penjualan', 'pemanfaatan', 'biomassa', 'rw', 'laporan'].includes(publicTab) && (
+          <PublicRestrictedAccessView
+            onOpenLogin={() => setShowLoginModal(true)}
+            onBackToHome={() => {
+              setPublicTab('beranda');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
         )}
       </main>
 
       {/* FOOTER */}
       <PublicFooter
         onSelectTab={(tab) => {
-          if (['beranda', 'biomassa', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
-            setPublicTab(tab as any);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+          setPublicTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onOpenLogin={() => setShowLoginModal(true)}
       />

@@ -24,6 +24,7 @@ export const DepositFormModal: React.FC<DepositFormModalProps> = ({
   const [day, setDay] = useState(initialData?.day || getIndonesianDay(today));
   const [rwId, setRwId] = useState(initialData?.rw_id || (rws[0]?.id || ''));
   const [rtId, setRtId] = useState(initialData?.rt_id || '');
+  const [citizenName, setCitizenName] = useState(initialData?.citizen_name || '');
   const [weight, setWeight] = useState<string>(initialData ? String(initialData.weight) : '');
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [transactionNo, setTransactionNo] = useState(initialData?.transaction_no || '');
@@ -68,6 +69,7 @@ export const DepositFormModal: React.FC<DepositFormModalProps> = ({
         day,
         rw_id: rwId,
         rt_id: rtId,
+        citizen_name: citizenName.trim() || undefined,
         weight: parsedWeight,
         notes: notes.trim(),
         transaction_no: transactionNo.trim() || initialData.transaction_no,
@@ -80,6 +82,7 @@ export const DepositFormModal: React.FC<DepositFormModalProps> = ({
         day,
         rw_id: rwId,
         rt_id: rtId,
+        citizen_name: citizenName.trim() || undefined,
         weight: parsedWeight,
         notes: notes.trim(),
         transaction_no: transactionNo.trim(),
@@ -211,6 +214,20 @@ export const DepositFormModal: React.FC<DepositFormModalProps> = ({
                   ))
                 )}
               </select>
+            </div>
+
+            {/* Nama Warga / Penyetor */}
+            <div className="col-span-2">
+              <label className="block font-semibold text-stone-700 mb-1">
+                Nama Warga / Penyetor <span className="text-stone-400 font-normal text-xs">(Opsional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Bpk. Bambang / Ibu Rohimah"
+                value={citizenName}
+                onChange={(e) => setCitizenName(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-stone-900 focus:ring-2 focus:ring-emerald-600 outline-none placeholder:text-stone-400"
+              />
             </div>
 
             {/* Berat */}

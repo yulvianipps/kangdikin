@@ -91,10 +91,10 @@ export const PublicLandingView: React.FC<PublicLandingViewProps> = ({ onNavigate
               </button>
 
               <button
-                onClick={() => onNavigate('laporan')}
+                onClick={() => onNavigate('edukasi')}
                 className="px-5 py-3 rounded-xl text-sm font-semibold bg-stone-800/90 text-stone-200 hover:bg-stone-700 border border-stone-700 transition-colors"
               >
-                Lihat Laporan Keuangan
+                Panduan Edukasi Pilah
               </button>
             </div>
           </div>
@@ -258,7 +258,7 @@ export const PublicLandingView: React.FC<PublicLandingViewProps> = ({ onNavigate
           </p>
           <div className="pt-3">
             <button
-              onClick={() => onNavigate(cta.buttonLink || 'setoran')}
+              onClick={() => onNavigate(cta.buttonLink === 'setoran' ? 'posko' : (cta.buttonLink || 'posko'))}
               className="px-6 py-3 bg-white text-emerald-950 font-bold rounded-xl text-sm hover:bg-emerald-50 transition-colors shadow-sm"
             >
               {cta.buttonText}

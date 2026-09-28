@@ -30,6 +30,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       const headers = ['Informasi', 'Rincian'];
       const rows = [
         ['Nomor Transaksi', dep.transaction_no],
+        ['Warga / Penyetor', dep.citizen_name || 'Warga Setempat'],
         ['Program', getProgramName(dep.program_id)],
         ['Hari & Tanggal', `${dep.day}, ${formatIndonesianDate(dep.date)}`],
         ['Wilayah RW / RT', `${getRWName(dep.rw_id)} / ${getRTName(dep.rt_id)}`],
@@ -119,6 +120,17 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           {/* Rincian Spesifik Sesuai Type */}
           {type === 'deposit' && (
             <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 p-3 bg-stone-50 rounded-xl border border-stone-100 flex items-center justify-between">
+                <div>
+                  <span className="text-stone-500 text-[11px] block">Warga / Penyetor</span>
+                  <span className="font-bold text-stone-900 text-sm mt-0.5 block">
+                    {(data as Deposit).citizen_name || 'Warga Setempat'}
+                  </span>
+                </div>
+                <span className="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
+                  Penyetor Terdaftar
+                </span>
+              </div>
               <div className="p-3 bg-stone-50 rounded-xl border border-stone-100">
                 <span className="text-stone-500 text-[11px] block flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-stone-400" /> Hari & Tanggal

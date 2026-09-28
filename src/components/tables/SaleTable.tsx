@@ -16,6 +16,7 @@ import {
   Plus,
   ArrowUpDown,
   Inbox,
+  Search,
 } from 'lucide-react';
 
 interface SaleTableProps {
@@ -30,14 +31,35 @@ export const SaleTable: React.FC<SaleTableProps> = ({
   const { filteredSales, deleteSale, isAdmin, getProgramName, filters } = useApp();
 
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [sortField, setSortField] = useState<'date' | 'total' | 'weight' | 'no'>('date');
   const [sortAsc, setSortAsc] = useState(false);
 
+  // Real-time search by material category, buyer, transaction_no, notes, program
+  const searchedSales = useMemo(() => {
+    if (!searchQuery.trim()) return filteredSales;
+    const q = searchQuery.toLowerCase().trim();
+    return filteredSales.filter((s) => {
+      const item = (s.item_type || '').toLowerCase();
+      const buyer = (s.buyer || '').toLowerCase();
+      const tx = (s.transaction_no || '').toLowerCase();
+      const notes = (s.notes || '').toLowerCase();
+      const prog = getProgramName(s.program_id).toLowerCase();
+      return (
+        item.includes(q) ||
+        buyer.includes(q) ||
+        tx.includes(q) ||
+        notes.includes(q) ||
+        prog.includes(q)
+      );
+    });
+  }, [filteredSales, searchQuery, getProgramName]);
+
   // Sorting
   const sortedSales = useMemo(() => {
-    return [...filteredSales].sort((a, b) => {
+    return [...searchedSales].sort((a, b) => {
       if (sortField === 'date') {
         const diff = a.date.localeCompare(b.date);
         return sortAsc ? diff : -diff;
@@ -54,7 +76,7 @@ export const SaleTable: React.FC<SaleTableProps> = ({
       }
       return 0;
     });
-  }, [filteredSales, sortField, sortAsc]);
+  }, [searchedSales, sortField, sortAsc]);
 
   // Pagination
   const totalPages = Math.ceil(sortedSales.length / pageSize) || 1;
@@ -65,11 +87,11 @@ export const SaleTable: React.FC<SaleTableProps> = ({
 
   // Aggregate Metrics: Total berat terjual, Total penjualan, Rata-rata harga per kg
   const summaryMetrics = useMemo(() => {
-    const totalWeight = filteredSales.reduce((sum, s) => sum + (Number(s.weight) || 0), 0);
-    const totalAmount = filteredSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0);
+    const totalWeight = searchedSales.reduce((sum, s) => sum + (Number(s.weight) || 0), 0);
+    const totalAmount = searchedSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0);
     const avgPrice = totalWeight > 0 ? Math.round(totalAmount / totalWeight) : 0;
     return { totalWeight, totalAmount, avgPrice };
-  }, [filteredSales]);
+  }, [searchedSales]);
 
   const handleSort = (field: 'date' | 'total' | 'weight' | 'no') => {
     if (sortField === field) {
@@ -172,6 +194,34 @@ export const SaleTable: React.FC<SaleTableProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+          {/* Real-time search bar */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari kategori material, pembeli..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all placeholder:text-stone-400"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold"
+                title="Hapus pencarian"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {/* Export buttons - Khusus Admin */}
           {isAdmin && (
             <div className="flex items-center gap-1.5">
@@ -266,7 +316,9 @@ export const SaleTable: React.FC<SaleTableProps> = ({
                     <Inbox className="w-8 h-8 text-stone-300" />
                     <span className="font-semibold text-sm">Belum ada data penjualan</span>
                     <span className="text-xs text-stone-400 max-w-sm">
-                      Belum ada laporan penjualan untuk periode atau filter yang Anda pilih.
+                      {searchQuery
+                        ? `Tidak ada penjualan yang cocok dengan pencarian "${searchQuery}".`
+                        : 'Belum ada laporan penjualan untuk periode atau filter yang Anda pilih.'}
                     </span>
                   </div>
                 </td>

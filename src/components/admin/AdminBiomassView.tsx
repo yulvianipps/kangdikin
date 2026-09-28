@@ -43,7 +43,12 @@ export const AdminBiomassView: React.FC<AdminBiomassViewProps> = ({
     biomassPartners,
     biomassTypes,
     addToast,
+    user,
+    isStaff,
   } = useApp();
+
+  const isArenStaff = isStaff && user?.assignedProgramId === 'prog-aren';
+  const isBankSampahStaff = isStaff && user?.assignedProgramId === 'prog-bank-sampah';
 
   // Filters state
   const [filterPartner, setFilterPartner] = useState<string>('all');
@@ -74,6 +79,16 @@ export const AdminBiomassView: React.FC<AdminBiomassViewProps> = ({
   // Filtered dataset
   const filtered = useMemo(() => {
     return biomassEntries.filter((b) => {
+      // Role scope: If user is assigned to Aren, strictly limit to Aren biomass
+      if (isArenStaff) {
+        const isAren =
+          (b.biomass_type && b.biomass_type.toLowerCase().includes('aren')) ||
+          (b.group_category && b.group_category.toLowerCase().includes('ciamis')) ||
+          (b.notes && b.notes.toLowerCase().includes('aren')) ||
+          b.partner_id === 'prt-cms';
+        if (!isAren) return false;
+      }
+
       if (filterPartner !== 'all' && b.group_category !== filterPartner) return false;
       if (filterType !== 'all' && b.biomass_type !== filterType) return false;
       if (filterDate && b.date !== filterDate) return false;
@@ -99,7 +114,7 @@ export const AdminBiomassView: React.FC<AdminBiomassViewProps> = ({
 
       return true;
     });
-  }, [biomassEntries, filterPartner, filterType, filterDate, filterCondition, search]);
+  }, [biomassEntries, filterPartner, filterType, filterDate, filterCondition, search, isArenStaff]);
 
   // Aggregations
   const totalGrossKg = useMemo(
@@ -325,8 +340,40 @@ export const AdminBiomassView: React.FC<AdminBiomassViewProps> = ({
     document.body.removeChild(link);
   };
 
+  if (isBankSampahStaff) {
+    return (
+      <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center space-y-4 max-w-lg mx-auto my-12">
+        <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center mx-auto text-xl font-bold">
+          ♻️
+        </div>
+        <h3 className="font-bold text-stone-900 text-lg">Modul Jembatan Timbang Biomassa</h3>
+        <p className="text-xs text-stone-600 leading-relaxed">
+          Anda sedang masuk sebagai <strong>Pengelola Bank Sampah</strong>. Modul timbangan truk biomassa ini dikhususkan untuk rantai pasok nira/serbuk Aren dan kayu. Data dan transaksi Bank Sampah Anda dapat dikelola melalui menu <strong>Setoran</strong>, <strong>Penjualan Daur Ulang</strong>, dan <strong>Pemanfaatan</strong> di sebelah kiri.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Scope banner for Aren Staff */}
+      {isArenStaff && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-950">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🌴</span>
+            <div>
+              <div className="font-bold text-sm">Mode Khusus: Rantai Pasok & Biomassa Sentra Aren</div>
+              <div className="text-amber-800 mt-0.5">
+                Data disaring otomatis untuk muatan Serbuk Aren & Fasilitas Produksi Ciamis. Anda memiliki akses penuh untuk menambah, mengedit, dan menghapus (CRUD) logistik Aren.
+              </div>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-lg bg-amber-200/80 font-bold border border-amber-300 text-[11px] shrink-0 self-start sm:self-auto">
+            CRUD Aren Aktif
+          </span>
+        </div>
+      )}
+
       {/* Top Header Card */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

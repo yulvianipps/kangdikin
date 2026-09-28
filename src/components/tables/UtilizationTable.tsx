@@ -16,6 +16,7 @@ import {
   Plus,
   ArrowUpDown,
   Inbox,
+  Search,
 } from 'lucide-react';
 
 interface UtilizationTableProps {
@@ -37,14 +38,37 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
   } = useApp();
 
   const [selectedUtil, setSelectedUtil] = useState<Utilization | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [sortField, setSortField] = useState<'date' | 'amount' | 'no'>('date');
   const [sortAsc, setSortAsc] = useState(false);
 
+  // Real-time search by recipient, type, description, tx no, program, RW
+  const searchedUtilizations = useMemo(() => {
+    if (!searchQuery.trim()) return filteredUtilizations;
+    const q = searchQuery.toLowerCase().trim();
+    return filteredUtilizations.filter((u) => {
+      const recipient = (u.recipient || '').toLowerCase();
+      const type = (u.type || '').toLowerCase();
+      const desc = (u.description || '').toLowerCase();
+      const tx = (u.transaction_no || '').toLowerCase();
+      const prog = getProgramName(u.program_id).toLowerCase();
+      const rw = getRWName(u.rw_id).toLowerCase();
+      return (
+        recipient.includes(q) ||
+        type.includes(q) ||
+        desc.includes(q) ||
+        tx.includes(q) ||
+        prog.includes(q) ||
+        rw.includes(q)
+      );
+    });
+  }, [filteredUtilizations, searchQuery, getProgramName, getRWName]);
+
   // Sorting
   const sortedUtilizations = useMemo(() => {
-    return [...filteredUtilizations].sort((a, b) => {
+    return [...searchedUtilizations].sort((a, b) => {
       if (sortField === 'date') {
         const diff = a.date.localeCompare(b.date);
         return sortAsc ? diff : -diff;
@@ -58,7 +82,7 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
       }
       return 0;
     });
-  }, [filteredUtilizations, sortField, sortAsc]);
+  }, [searchedUtilizations, sortField, sortAsc]);
 
   // Pagination
   const totalPages = Math.ceil(sortedUtilizations.length / pageSize) || 1;
@@ -69,8 +93,8 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
 
   // Total summary
   const totalAmountFiltered = useMemo(() => {
-    return filteredUtilizations.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
-  }, [filteredUtilizations]);
+    return searchedUtilizations.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+  }, [searchedUtilizations]);
 
   const handleSort = (field: 'date' | 'amount' | 'no') => {
     if (sortField === field) {
@@ -133,14 +157,14 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
   return (
     <div className="bg-white rounded-2xl border border-stone-200/90 shadow-xs overflow-hidden">
       {/* Table Header Controls */}
-      <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-stone-50/50">
+      <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-stone-50/50">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-stone-900">
               Modul Pemanfaatan Dana Bersama
             </h3>
             <span className="text-xs bg-teal-100 text-teal-800 font-semibold px-2 py-0.5 rounded-full">
-              {filteredUtilizations.length} Kegiatan
+              {searchedUtilizations.length} Kegiatan
             </span>
           </div>
           <p className="text-xs text-stone-500 mt-0.5">
@@ -148,7 +172,35 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          {/* Real-time search bar */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari penerima, kegiatan..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition-all placeholder:text-stone-400"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold"
+                title="Hapus pencarian"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {/* Export buttons - Khusus Admin */}
           {isAdmin && (
             <div className="flex items-center gap-1.5">
@@ -222,7 +274,7 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
                   <ArrowUpDown className="w-3 h-3 text-stone-400" />
                 </div>
               </th>
-              <th className="py-3 px-4 whitespace-nowrap">Deskripsi Kegiatan</th>
+              <th className="py-3 px-4 whitespace-nowrap">Penerima & Kegiatan</th>
               <th className="py-3 px-4 text-center whitespace-nowrap">Aksi</th>
             </tr>
           </thead>
@@ -234,7 +286,9 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
                     <Inbox className="w-8 h-8 text-stone-300" />
                     <span className="font-semibold text-sm">Belum ada data pemanfaatan</span>
                     <span className="text-xs text-stone-400 max-w-sm">
-                      Belum ada laporan penyaluran pemanfaatan untuk filter yang Anda pilih.
+                      {searchQuery
+                        ? `Tidak ada pemanfaatan yang cocok dengan pencarian "${searchQuery}".`
+                        : 'Belum ada laporan penyaluran pemanfaatan untuk filter yang Anda pilih.'}
                     </span>
                   </div>
                 </td>
@@ -269,8 +323,15 @@ export const UtilizationTable: React.FC<UtilizationTableProps> = ({
                   <td className="py-3 px-4 font-black text-teal-900 text-right text-sm whitespace-nowrap">
                     {formatRupiah(item.amount)}
                   </td>
-                  <td className="py-3 px-4 text-stone-600 max-w-xs truncate" title={item.description}>
-                    {item.description}
+                  <td className="py-3 px-4 text-xs max-w-xs">
+                    {item.recipient && (
+                      <span className="font-semibold text-stone-900 block truncate" title={item.recipient}>
+                        {item.recipient}
+                      </span>
+                    )}
+                    <span className="text-stone-500 line-clamp-1 block" title={item.description}>
+                      {item.description}
+                    </span>
                   </td>
                   <td className="py-3 px-4 text-center whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1">
