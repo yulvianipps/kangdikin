@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Leaf, Menu, X, LayoutDashboard } from 'lucide-react';
+import { Leaf, Menu, X, LayoutDashboard, Lock, LogOut, Shield, User } from 'lucide-react';
 
 interface PublicHeaderProps {
   currentTab?: string;
   onSelectTab?: (tab: string) => void;
   onSwitchToAdmin?: () => void;
+  onOpenLogin?: () => void;
 }
 
 export const PublicHeader: React.FC<PublicHeaderProps> = ({
   currentTab = 'beranda',
   onSelectTab,
   onSwitchToAdmin,
+  onOpenLogin,
 }) => {
-  const { isAdmin } = useApp();
+  const { user, isAdmin, isSuperAdmin, isStaff, logout } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     { id: 'beranda', label: 'Beranda' },
+    { id: 'biomassa', label: 'Daftar Biomassa' },
     { id: 'program', label: 'Program' },
     { id: 'setoran', label: 'Setoran' },
     { id: 'penjualan', label: 'Penjualan' },
@@ -40,7 +43,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
             onClick={() => handleNavClick('beranda')}
             className="flex items-center gap-3 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center text-white shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center text-white shrink-0 group-hover:bg-emerald-700 transition-colors">
               <Leaf className="w-5 h-5 text-emerald-200" />
             </div>
             <div>
@@ -78,15 +81,45 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
             })}
           </nav>
 
-          {/* Right Action: tombol panel hanya muncul jika admin sudah login */}
-          <div className="hidden sm:flex items-center gap-3">
-            {isAdmin && (
+          {/* Right Action: Login / Admin status */}
+          <div className="hidden sm:flex items-center gap-2">
+            {isAdmin ? (
+              <div className="flex items-center gap-2">
+                <div className="px-2.5 py-1 bg-stone-100 border border-stone-200 rounded-lg text-xs font-medium text-stone-700 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="font-semibold text-stone-900">
+                    {isSuperAdmin
+                      ? 'Super Admin'
+                      : user?.assignedProgramName
+                      ? `Pengelola ${user.assignedProgramName}`
+                      : 'Pengurus'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={onSwitchToAdmin}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-800 text-white hover:bg-emerald-700 transition-colors shadow-xs"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Buka Panel</span>
+                </button>
+
+                <button
+                  onClick={logout}
+                  className="p-2 text-stone-400 hover:text-rose-600 rounded-lg hover:bg-stone-100 transition-colors"
+                  title="Keluar dari sesi"
+                  aria-label="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={onSwitchToAdmin}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-800 text-white hover:bg-emerald-700 transition-colors shadow-xs"
+                onClick={onOpenLogin}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-200 transition-colors"
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Masuk Panel Admin</span>
+                <Lock className="w-3.5 h-3.5 text-stone-500" />
+                <span>Masuk Pengurus</span>
               </button>
             )}
           </div>
@@ -124,20 +157,53 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
             );
           })}
 
-          {isAdmin && (
-            <div className="pt-4 border-t border-stone-100">
+          <div className="pt-4 border-t border-stone-100 space-y-2">
+            {isAdmin ? (
+              <>
+                <div className="px-3 py-2 bg-stone-50 rounded-lg text-xs text-stone-600 flex items-center justify-between">
+                  <span>Status:</span>
+                  <span className="font-bold text-stone-900">
+                    {isSuperAdmin
+                      ? 'Super Admin'
+                      : user?.assignedProgramName
+                      ? `Pengelola ${user.assignedProgramName}`
+                      : 'Pengurus'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (onSwitchToAdmin) onSwitchToAdmin();
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-800 text-white"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Buka Panel Pengurus</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Keluar dari Sesi</span>
+                </button>
+              </>
+            ) : (
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  if (onSwitchToAdmin) onSwitchToAdmin();
+                  if (onOpenLogin) onOpenLogin();
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-800 text-white"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-stone-100 text-stone-800 border border-stone-200"
               >
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Masuk Panel Admin</span>
+                <Lock className="w-4 h-4 text-stone-600" />
+                <span>Masuk Pengurus & Kader</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </header>

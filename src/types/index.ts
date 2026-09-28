@@ -2,7 +2,9 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'public';
+  role: 'admin' | 'staff' | 'public';
+  assignedProgramId?: string;
+  assignedProgramName?: string;
 }
 
 export interface ProgramCategory {
@@ -161,4 +163,44 @@ export interface FrontPageContent {
   stats: StatItemConfig[];
   about: FrontPageAbout;
   cta: FrontPageCTA;
+}
+
+export interface BiomassPartner {
+  id: string;
+  name: string;        // e.g. "Stokpile Indramayu", "Fasprod Ciamis"
+  code?: string;       // e.g. "STK-IDM", "FAS-CMS"
+  location?: string;   // e.g. "Indramayu, Jawa Barat"
+  type?: 'stokpile' | 'fasprod' | 'kelompok_tani' | 'mitra_lain';
+  description?: string;
+  createdAt: string;
+}
+
+export interface BiomassTypeMaster {
+  id: string;
+  name: string;        // e.g. "Aren", "Serbuk Aren", "Kayu Limbah", "Sekam Padi", "Briket Biomassa"
+  description?: string;
+  defaultPrice?: number;
+}
+
+export interface BiomassEntry {
+  id: string;
+  transaction_no: string;      // e.g. "BIO-2026-001"
+  date: string;                // tanggal (YYYY-MM-DD)
+  day: string;                 // Sabtu, Minggu, Senin, etc.
+  shift: string;               // shift (Shift 1, Shift 2, Reguler, etc.)
+  activity_type: string;       // jenis aktifitas (Bongkar Kayu, Pasok Biomassa, dll)
+  partner_id?: string;         // ID kelompok / stokpile
+  group_category: string;      // nama kelompok/stokpile (misal: "Stokpile Indramayu", "Fasprod Ciamis")
+  biomass_type?: string;       // jenis biomassa (misal: "Aren", "Kayu Sengon", "Sekam Padi")
+  vehicle_plate: string;       // no pol truk (misal: Z 9415 TA)
+  driver_name: string;         // nama sopir
+  arrival_time: string;        // jam tiba (HH:mm)
+  departure_time: string;      // jam berangkat (HH:mm)
+  gross_weight: number;        // berat kotor (Kg)
+  tare_weight: number;         // berat kosong (Kg)
+  net_weight: number;          // netto (Kg) = gross_weight - tare_weight
+  condition?: string;          // misal: "kering", "basah"
+  notes?: string;              // catatan tambahan (misal: "basah")
+  created_by?: string;
+  createdAt: string;
 }

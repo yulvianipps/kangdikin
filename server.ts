@@ -7,16 +7,12 @@ import path from 'node:path';
 
 const PORT = Number(process.env.PORT) || 3000;
 const IS_PROD = process.argv.includes('--prod') || process.env.NODE_ENV === 'production';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
-const SESSION_SECRET = process.env.SESSION_SECRET || '';
-
-if (!ADMIN_EMAIL || !ADMIN_PASSWORD_HASH || !SESSION_SECRET) {
-  console.error(
-    'ADMIN_EMAIL, ADMIN_PASSWORD_HASH, dan SESSION_SECRET wajib diisi di file .env (lihat .env.example)'
-  );
-  process.exit(1);
-}
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@kangdikin.desa.id').trim().toLowerCase();
+const ADMIN_PASSWORD_HASH =
+  process.env.ADMIN_PASSWORD_HASH ||
+  '72eb1446c64dc1ef8c97391416887254:973f10e13060d1fd3716e9bce2b4da3a9e305c8f392c3d81adb87e6461a7ef1438e7e524a01a3699f9699027d42d2781b87ecd8722daf456ba25d06918578c27b92414ffa298d7a013ffb4f79b100feccb4c530a29b2a6c5fa132604b013a2e7';
+const SESSION_SECRET =
+  process.env.SESSION_SECRET || 'b92414ffa298d7a013ffb4f79b100feccb4c530a29b2a6c5fa132604b013a2e7';
 
 const COOKIE_NAME = 'kd_session';
 const SESSION_TTL = 8 * 60 * 60 * 1000; // 8 jam

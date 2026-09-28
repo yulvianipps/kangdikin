@@ -13,6 +13,7 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
 }) => {
   const {
     deposits,
+    biomassEntries,
     sales,
     utilizations,
     programs,
@@ -25,12 +26,19 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
     getProgramName,
     getRWName,
     getRTName,
+    isStaff,
+    userProgramId,
+    userProgramName,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'finance' | 'rw' | 'period' | 'export'>(initialSubTab);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [rwSummaryPage, setRwSummaryPage] = useState(1);
   const [rwSummaryPageSize, setRwSummaryPageSize] = useState(10);
+
+  const scopedDeposits = isStaff && userProgramId ? deposits.filter((d) => d.program_id === userProgramId) : deposits;
+  const scopedSales = isStaff && userProgramId ? sales.filter((s) => s.program_id === userProgramId) : sales;
+  const scopedUtilizations = isStaff && userProgramId ? utilizations.filter((u) => u.program_id === userProgramId) : utilizations;
 
   const totalRwSummaryPages = Math.ceil(rwSummaries.length / rwSummaryPageSize) || 1;
   const paginatedRwSummaries = rwSummaries.slice(
@@ -54,7 +62,7 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
 
   const handleExportDeposits = () => {
     const headers = ['No', 'Tanggal', 'Program', 'RW', 'RT', 'Berat (Kg)', 'Catatan'];
-    const rows = deposits.map((d, i) => [
+    const rows = scopedDeposits.map((d, i) => [
       i + 1,
       d.date,
       getProgramName(d.program_id),
@@ -63,12 +71,12 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
       d.weight,
       d.notes || '',
     ]);
-    exportToCSV('Laporan_Setoran_KANG_DIKIN', headers, rows);
+    exportToCSV(`Laporan_Setoran_${userProgramName || 'Semua_Program'}`, headers, rows);
   };
 
   const handleExportSales = () => {
     const headers = ['No', 'Tanggal', 'Program', 'Jenis Barang', 'Berat (Kg)', 'Harga Satuan (Rp)', 'Total (Rp)', 'Pembeli'];
-    const rows = sales.map((s, i) => [
+    const rows = scopedSales.map((s, i) => [
       i + 1,
       s.date,
       getProgramName(s.program_id),
@@ -78,12 +86,12 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
       s.total,
       s.buyer || '',
     ]);
-    exportToCSV('Laporan_Penjualan_KANG_DIKIN', headers, rows);
+    exportToCSV(`Laporan_Penjualan_${userProgramName || 'Semua_Program'}`, headers, rows);
   };
 
   const handleExportUtilizations = () => {
     const headers = ['No', 'Tanggal', 'Program', 'RW', 'Jenis Pemanfaatan', 'Jumlah (Rp)', 'Penerima', 'Keterangan'];
-    const rows = utilizations.map((u, i) => [
+    const rows = scopedUtilizations.map((u, i) => [
       i + 1,
       u.date,
       getProgramName(u.program_id),
@@ -93,7 +101,7 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
       u.recipient || '',
       u.description || '',
     ]);
-    exportToCSV('Laporan_Pemanfaatan_KANG_DIKIN', headers, rows);
+    exportToCSV(`Laporan_Pemanfaatan_${userProgramName || 'Semua_Program'}`, headers, rows);
   };
 
   const handleExportRWSummary = () => {
@@ -107,6 +115,44 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
       r.totalUtilizationAmount,
     ]);
     exportToCSV('Rekap_RW_KANG_DIKIN', headers, rows);
+  };
+
+  const handleExportBiomass = () => {
+    const headers = [
+      'No',
+      'No Transaksi',
+      'Tanggal',
+      'Hari',
+      'Shift',
+      'Kelompok',
+      'Jenis Aktifitas',
+      'No Pol Truk',
+      'Nama Sopir',
+      'Jam Tiba',
+      'Jam Berangkat',
+      'Berat Kotor (Kg)',
+      'Berat Kosong (Kg)',
+      'Netto (Kg)',
+      'Catatan',
+    ];
+    const rows = biomassEntries.map((b, i) => [
+      i + 1,
+      b.transaction_no,
+      b.date,
+      b.day,
+      b.shift,
+      b.group_category || '-',
+      b.activity_type,
+      b.vehicle_plate,
+      b.driver_name,
+      b.arrival_time,
+      b.departure_time,
+      b.gross_weight,
+      b.tare_weight,
+      b.net_weight,
+      b.notes || '',
+    ]);
+    exportToCSV('Laporan_Daftar_Biomassa', headers, rows);
   };
 
   return (
@@ -443,6 +489,22 @@ export const AdminReportsView: React.FC<AdminReportsViewProps> = ({
               </div>
               <button
                 onClick={handleExportRWSummary}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh CSV</span>
+              </button>
+            </div>
+
+            <div className="p-5 border border-stone-200 rounded-xl flex items-center justify-between bg-emerald-50/40">
+              <div>
+                <h4 className="font-bold text-sm text-emerald-950">DAFTAR BIOMASSA (Timbang Truk)</h4>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  {biomassEntries.length} log penimbangan armada truk (Gross, Tara, Netto, Sopir & Kelompok)
+                </p>
+              </div>
+              <button
+                onClick={handleExportBiomass}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />

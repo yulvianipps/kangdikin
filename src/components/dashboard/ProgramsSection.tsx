@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatRupiah, formatWeight } from '../../utils/dateUtils';
 import { Program } from '../../types';
-import { Edit2, Trash2, Layers } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 
 interface ProgramsSectionProps {
   onSelectProgram?: (programId: string) => void;
@@ -48,10 +48,9 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({
               <button
                 type="button"
                 onClick={onOpenCategoriesModal}
-                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-300 transition-colors inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-300 transition-colors"
                 title="Kelola Kategori Program (CRUD)"
               >
-                <Layers className="w-3.5 h-3.5" />
                 Kelola Kategori ({programCategories.length})
               </button>
             )}

@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatIndonesianDate, formatRupiah, formatWeight } from '../../utils/dateUtils';
 import { downloadExcel, printFormattedReport } from '../../utils/exportUtils';
-import { Printer, FileSpreadsheet } from 'lucide-react';
 
 export const PeriodReportSection: React.FC = () => {
   const { deposits, sales, utilizations, isAdmin } = useApp();
@@ -156,16 +155,14 @@ export const PeriodReportSection: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={handleExportExcel}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-stone-700 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
+                className="px-3 py-1.5 text-xs font-semibold text-stone-700 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
                 Excel
               </button>
               <button
                 onClick={handlePrint}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-stone-700 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
+                className="px-3 py-1.5 text-xs font-semibold text-stone-700 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
               >
-                <Printer className="w-3.5 h-3.5 text-stone-600" />
                 Print
               </button>
             </div>

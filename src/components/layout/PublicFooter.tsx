@@ -2,9 +2,10 @@ import React from 'react';
 
 interface PublicFooterProps {
   onSelectTab?: (tab: string) => void;
+  onOpenLogin?: () => void;
 }
 
-export const PublicFooter: React.FC<PublicFooterProps> = ({ onSelectTab }) => {
+export const PublicFooter: React.FC<PublicFooterProps> = ({ onSelectTab, onOpenLogin }) => {
   const handleNav = (tab: string) => {
     if (onSelectTab) {
       onSelectTab(tab);
@@ -122,6 +123,16 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onSelectTab }) => {
               <p className="text-xs text-stone-400 leading-normal">
                 Setiap kilogram setoran dan rupiah pemanfaatan dicatat secara realtime dan dapat dipantau oleh seluruh lapisan masyarakat.
               </p>
+              {onOpenLogin && (
+                <div className="pt-2 border-t border-stone-700/40">
+                  <button
+                    onClick={onOpenLogin}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 underline font-medium"
+                  >
+                    Portal Masuk Pengurus & Kader &rarr;
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

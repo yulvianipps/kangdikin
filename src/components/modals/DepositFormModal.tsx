@@ -13,12 +13,13 @@ export const DepositFormModal: React.FC<DepositFormModalProps> = ({
   initialData,
   onClose,
 }) => {
-  const { programs, rws, rts, addDeposit, updateDeposit } = useApp();
+  const { programs, rws, rts, addDeposit, updateDeposit, isStaff, userProgramId, userProgramName } = useApp();
 
   const isEdit = !!initialData;
   const today = getTodayDateString();
 
-  const [programId, setProgramId] = useState(initialData?.program_id || (programs[0]?.id || ''));
+  const defaultProgramId = initialData?.program_id || (isStaff && userProgramId ? userProgramId : (programs[0]?.id || ''));
+  const [programId, setProgramId] = useState(defaultProgramId);
   const [date, setDate] = useState(initialData?.date || today);
   const [day, setDay] = useState(initialData?.day || getIndonesianDay(today));
   const [rwId, setRwId] = useState(initialData?.rw_id || (rws[0]?.id || ''));
@@ -120,15 +121,23 @@ export const DepositFormModal: React.FC<DepositFormModalProps> = ({
             <div className="col-span-2">
               <label className="block font-semibold text-stone-700 mb-1">
                 Program Terkait <span className="text-rose-500">*</span>
+                {isStaff && (
+                  <span className="ml-2 text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                    Terkunci Khusus {userProgramName}
+                  </span>
+                )}
               </label>
               <select
                 value={programId}
                 onChange={(e) => setProgramId(e.target.value)}
+                disabled={isStaff && !!userProgramId}
                 required
-                className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-stone-900 font-medium focus:ring-2 focus:ring-emerald-600 outline-none"
+                className={`w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-stone-900 font-medium focus:ring-2 focus:ring-emerald-600 outline-none ${
+                  isStaff && !!userProgramId ? 'bg-stone-100 cursor-not-allowed text-stone-600' : ''
+                }`}
               >
                 {programs
-                  .filter((p) => p.is_active)
+                  .filter((p) => (isStaff && userProgramId ? p.id === userProgramId : p.is_active))
                   .map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.category})

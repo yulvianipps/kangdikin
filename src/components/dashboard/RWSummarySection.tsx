@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatRupiah, formatWeight } from '../../utils/dateUtils';
-import { ChevronDown, ChevronUp, FileSpreadsheet } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { downloadCSV } from '../../utils/exportUtils';
 
 export const RWSummarySection: React.FC = () => {
@@ -53,9 +53,8 @@ export const RWSummarySection: React.FC = () => {
         {isAdmin && (
           <button
             onClick={handleExportRW}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold rounded-lg text-xs transition-colors"
+            className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold rounded-lg text-xs transition-colors"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
             Ekspor Rekap RW
           </button>
         )}

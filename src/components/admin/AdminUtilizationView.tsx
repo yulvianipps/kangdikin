@@ -22,9 +22,14 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
     deleteUtilization,
     getProgramName,
     getRWName,
+    isStaff,
+    userProgramId,
+    userProgramName,
   } = useApp();
 
-  const [filterProgram, setFilterProgram] = useState<string>('all');
+  const [filterProgram, setFilterProgram] = useState<string>(
+    isStaff && userProgramId ? userProgramId : 'all'
+  );
   const [filterRW, setFilterRW] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [deletingUtil, setDeletingUtil] = useState<Utilization | null>(null);
@@ -37,8 +42,11 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
     setCurrentPage(1);
   }, [filterProgram, filterRW, search]);
 
+  const effectiveProgramFilter = isStaff && userProgramId ? userProgramId : filterProgram;
+
   const filtered = utilizations.filter((u) => {
-    if (filterProgram !== 'all' && u.program_id !== filterProgram) return false;
+    if (isStaff && userProgramId && u.program_id !== userProgramId) return false;
+    if (effectiveProgramFilter !== 'all' && u.program_id !== effectiveProgramFilter) return false;
     if (filterRW !== 'all' && u.rw_id !== filterRW) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -91,16 +99,21 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div>
             <select
-              value={filterProgram}
+              value={effectiveProgramFilter}
               onChange={(e) => setFilterProgram(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
+              disabled={isStaff && !!userProgramId}
+              className={`px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 ${
+                isStaff && !!userProgramId ? 'bg-stone-100 text-stone-600 cursor-not-allowed' : ''
+              }`}
             >
-              <option value="all">Semua Program</option>
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {!isStaff && <option value="all">Semua Program</option>}
+              {programs
+                .filter((p) => (isStaff && userProgramId ? p.id === userProgramId : true))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </div>
 

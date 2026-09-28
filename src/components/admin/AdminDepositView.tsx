@@ -24,9 +24,14 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
     getProgramName,
     getRWName,
     getRTName,
+    isStaff,
+    userProgramId,
+    userProgramName,
   } = useApp();
 
-  const [filterProgram, setFilterProgram] = useState<string>('all');
+  const [filterProgram, setFilterProgram] = useState<string>(
+    isStaff && userProgramId ? userProgramId : 'all'
+  );
   const [filterRW, setFilterRW] = useState<string>('all');
   const [filterRT, setFilterRT] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
@@ -46,8 +51,11 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
   // Filter RT options based on selected RW
   const availableRTs = filterRW === 'all' ? rts : rts.filter((rt) => rt.rw_id === filterRW);
 
+  const effectiveProgramFilter = isStaff && userProgramId ? userProgramId : filterProgram;
+
   const filtered = deposits.filter((d) => {
-    if (filterProgram !== 'all' && d.program_id !== filterProgram) return false;
+    if (isStaff && userProgramId && d.program_id !== userProgramId) return false;
+    if (effectiveProgramFilter !== 'all' && d.program_id !== effectiveProgramFilter) return false;
     if (filterRW !== 'all' && d.rw_id !== filterRW) return false;
     if (filterRT !== 'all' && d.rt_id !== filterRT) return false;
     if (filterDate && d.date !== filterDate) return false;
@@ -108,19 +116,24 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
           {/* Program Filter */}
           <div>
             <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-              Program
+              Program {isStaff && <span className="text-amber-700 font-bold">(Terkunci)</span>}
             </label>
             <select
-              value={filterProgram}
+              value={effectiveProgramFilter}
               onChange={(e) => setFilterProgram(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
+              disabled={isStaff && !!userProgramId}
+              className={`w-full px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 ${
+                isStaff && !!userProgramId ? 'bg-stone-100 text-stone-600 cursor-not-allowed' : ''
+              }`}
             >
-              <option value="all">Semua Program</option>
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {!isStaff && <option value="all">Semua Program</option>}
+              {programs
+                .filter((p) => (isStaff && userProgramId ? p.id === userProgramId : true))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </div>
 

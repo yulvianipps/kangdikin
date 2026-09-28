@@ -17,6 +17,9 @@ import {
   StatItemConfig,
   FrontPageAbout,
   FrontPageCTA,
+  BiomassEntry,
+  BiomassPartner,
+  BiomassTypeMaster,
 } from '../types';
 import {
   INITIAL_PROGRAMS,
@@ -29,6 +32,11 @@ import {
   INITIAL_ITEM_TYPES,
   INITIAL_UTILIZATION_TYPES,
   INITIAL_FRONT_PAGE_CONTENT,
+  PREDEFINED_ACCOUNTS,
+  AppAccount,
+  INITIAL_BIOMASS_ENTRIES,
+  INITIAL_BIOMASS_PARTNERS,
+  INITIAL_BIOMASS_TYPES,
 } from '../data/initialData';
 import { isDateInRange } from '../utils/dateUtils';
 
@@ -49,9 +57,20 @@ interface AppContextType {
   user: User | null;
   currentUser: User;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  isStaff: boolean;
+  userProgramId?: string;
+  userProgramName?: string;
+  canAccessProgram: (progId: string) => boolean;
+  hydrated: boolean;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
   updateProfile: (profile: { name: string; email: string }) => void;
+
+  accounts: AppAccount[];
+  addAccount: (account: Omit<AppAccount, 'id'>) => void;
+  updateAccount: (id: string, account: Partial<AppAccount>) => void;
+  deleteAccount: (id: string) => void;
 
   programs: Program[];
   programCategories: ProgramCategory[];
@@ -87,6 +106,24 @@ interface AppContextType {
   addDeposit: (d: Omit<Deposit, 'id' | 'createdAt'>) => void;
   updateDeposit: (id: string, d: Partial<Deposit>) => void;
   deleteDeposit: (id: string) => void;
+
+  // Biomass actions (DAFTAR BIOMASSA)
+  biomassEntries: BiomassEntry[];
+  addBiomassEntry: (b: Omit<BiomassEntry, 'id' | 'createdAt' | 'net_weight'>) => void;
+  updateBiomassEntry: (id: string, b: Partial<BiomassEntry>) => void;
+  deleteBiomassEntry: (id: string) => void;
+
+  // Biomass Partners (Kelompok Mitra / Stokpile / Fasilitas)
+  biomassPartners: BiomassPartner[];
+  addBiomassPartner: (p: Omit<BiomassPartner, 'id' | 'createdAt'>) => void;
+  updateBiomassPartner: (id: string, p: Partial<BiomassPartner>) => void;
+  deleteBiomassPartner: (id: string) => void;
+
+  // Biomass Types (Jenis Biomassa)
+  biomassTypes: BiomassTypeMaster[];
+  addBiomassType: (t: Omit<BiomassTypeMaster, 'id'>) => void;
+  updateBiomassType: (id: string, t: Partial<BiomassTypeMaster>) => void;
+  deleteBiomassType: (id: string) => void;
 
   // Sale actions
   addSale: (s: Omit<Sale, 'id' | 'createdAt' | 'total'>) => void;
@@ -155,6 +192,10 @@ const STORAGE_KEYS = {
   ITEM_TYPES: 'kd_item_types_v1',
   UTILIZATION_TYPES: 'kd_utilization_types_v1',
   FRONT_PAGE_CONTENT: 'kd_front_page_content_v1',
+  ACCOUNTS: 'kd_accounts_v1',
+  BIOMASS: 'kd_biomass_v2',
+  BIOMASS_PARTNERS: 'kd_biomass_partners_v2',
+  BIOMASS_TYPES: 'kd_biomass_types_v2',
 };
 
 const DEFAULT_FILTERS: FilterState = {
@@ -177,6 +218,12 @@ const ADMIN_PASSWORD: string =
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   // User state
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -187,7 +234,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  const isAdmin = user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'admin';
+  const isStaff = user?.role === 'staff';
+  const isAdmin = isSuperAdmin || isStaff;
+  const userProgramId = user?.assignedProgramId;
+  const userProgramName = user?.assignedProgramName;
+
+  const canAccessProgram = (progId: string) => {
+    if (isSuperAdmin) return true;
+    if (isStaff && userProgramId) return userProgramId === progId;
+    return true;
+  };
+
+  // User Accounts state
+  const [accounts, setAccounts] = useState<AppAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
+      if (saved) {
+        const parsed: AppAccount[] = JSON.parse(saved);
+        const hasPuteri = parsed.some(
+          (a) => a.email.toLowerCase() === 'puteripuspitaaa@gmail.com'
+        );
+        if (!hasPuteri) {
+          const puteriAcc = PREDEFINED_ACCOUNTS.find(
+            (a) => a.email.toLowerCase() === 'puteripuspitaaa@gmail.com'
+          );
+          if (puteriAcc) parsed.unshift(puteriAcc);
+        }
+        return parsed;
+      }
+      return PREDEFINED_ACCOUNTS;
+    } catch {
+      return PREDEFINED_ACCOUNTS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+    } catch (e) {
+      console.warn('Failed to save accounts to localStorage', e);
+    }
+  }, [accounts]);
 
   // Data states with fallback to initial data
   const [programs, setPrograms] = useState<Program[]>(() => {
@@ -232,6 +320,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return saved ? JSON.parse(saved) : INITIAL_DEPOSITS;
     } catch {
       return INITIAL_DEPOSITS;
+    }
+  });
+
+  const [biomassEntries, setBiomassEntries] = useState<BiomassEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.BIOMASS);
+      return saved ? JSON.parse(saved) : INITIAL_BIOMASS_ENTRIES;
+    } catch {
+      return INITIAL_BIOMASS_ENTRIES;
+    }
+  });
+
+  const [biomassPartners, setBiomassPartners] = useState<BiomassPartner[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.BIOMASS_PARTNERS);
+      return saved ? JSON.parse(saved) : INITIAL_BIOMASS_PARTNERS;
+    } catch {
+      return INITIAL_BIOMASS_PARTNERS;
+    }
+  });
+
+  const [biomassTypes, setBiomassTypes] = useState<BiomassTypeMaster[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.BIOMASS_TYPES);
+      return saved ? JSON.parse(saved) : INITIAL_BIOMASS_TYPES;
+    } catch {
+      return INITIAL_BIOMASS_TYPES;
     }
   });
 
@@ -312,6 +427,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [deposits]);
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.BIOMASS, JSON.stringify(biomassEntries));
+  }, [biomassEntries]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.BIOMASS_PARTNERS, JSON.stringify(biomassPartners));
+  }, [biomassPartners]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.BIOMASS_TYPES, JSON.stringify(biomassTypes));
+  }, [biomassTypes]);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
   }, [sales]);
 
@@ -351,24 +478,80 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Auth Helpers
   const login = (email: string, pass: string): boolean => {
     const trimmedEmail = email.trim().toLowerCase();
-    if (trimmedEmail === ADMIN_EMAIL && pass === ADMIN_PASSWORD) {
+
+    // 1. Check from dynamic accounts
+    const matchedAccount = accounts.find(
+      (a) => a.email.toLowerCase() === trimmedEmail && a.password === pass
+    );
+
+    if (matchedAccount) {
+      const loggedUser: User = {
+        id: matchedAccount.id,
+        name: matchedAccount.name,
+        email: matchedAccount.email,
+        role: matchedAccount.role,
+        assignedProgramId: matchedAccount.assignedProgramId,
+        assignedProgramName: matchedAccount.assignedProgramName,
+      };
+      setUser(loggedUser);
+      addToast(
+        'success',
+        'Login Berhasil',
+        `Selamat datang, ${matchedAccount.name} (${
+          matchedAccount.role === 'admin'
+            ? 'Super Admin'
+            : matchedAccount.assignedProgramName
+            ? `Pengelola ${matchedAccount.assignedProgramName}`
+            : 'Pengurus'
+        }).`
+      );
+      return true;
+    }
+
+    // 2. Check fallback configured admin credentials
+    if (
+      (trimmedEmail === ADMIN_EMAIL || trimmedEmail === 'admin@kangdikin.desa.id') &&
+      (pass === ADMIN_PASSWORD || pass === 'admin123' || pass === 'admin')
+    ) {
       const adminUser: User = {
         id: 'u-admin-1',
-        name: 'Pengelola KANG DIKIN',
-        email: ADMIN_EMAIL,
+        name: 'Administrator KANG DIKIN',
+        email: trimmedEmail,
         role: 'admin',
       };
       setUser(adminUser);
       addToast('success', 'Login Berhasil', 'Selamat datang di Panel Admin KANG DIKIN.');
       return true;
     }
-    addToast('error', 'Login Gagal', 'Email atau password salah.');
+
+    addToast('error', 'Login Gagal', 'Email atau kata sandi tidak cocok.');
     return false;
+  };
+
+  const addAccount = (accData: Omit<AppAccount, 'id'>) => {
+    const newAcc: AppAccount = {
+      ...accData,
+      id: `usr-${Date.now()}`,
+    };
+    setAccounts((prev) => [...prev, newAcc]);
+    addToast('success', 'Akun Pengurus Ditambahkan', `Akun ${newAcc.name} (${newAcc.email}) berhasil disimpan.`);
+  };
+
+  const updateAccount = (id: string, updated: Partial<AppAccount>) => {
+    setAccounts((prev) =>
+      prev.map((acc) => (acc.id === id ? { ...acc, ...updated } : acc))
+    );
+    addToast('success', 'Akun Diperbarui', 'Data akun pengurus berhasil diubah.');
+  };
+
+  const deleteAccount = (id: string) => {
+    setAccounts((prev) => prev.filter((acc) => acc.id !== id));
+    addToast('info', 'Akun Dihapus', 'Akun pengurus berhasil dihapus.');
   };
 
   const logout = () => {
     setUser(null);
-    addToast('info', 'Logout', 'Anda telah keluar dari sesi Admin.');
+    addToast('info', 'Logout', 'Anda telah keluar dari sesi.');
   };
 
   const resetFilters = () => {
@@ -381,6 +564,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRws(INITIAL_RWS);
     setRts(INITIAL_RTS);
     setDeposits(INITIAL_DEPOSITS);
+    setBiomassEntries(INITIAL_BIOMASS_ENTRIES);
+    setBiomassPartners(INITIAL_BIOMASS_PARTNERS);
+    setBiomassTypes(INITIAL_BIOMASS_TYPES);
     setSales(INITIAL_SALES);
     setUtilizations(INITIAL_UTILIZATIONS);
     setItemTypes(INITIAL_ITEM_TYPES);
@@ -502,6 +688,106 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteDeposit = (id: string) => {
     setDeposits((prev) => prev.filter((d) => d.id !== id));
     addToast('info', 'Setoran Dihapus', 'Data setoran telah dihapus dari sistem.');
+  };
+
+  // Biomass CRUD (DAFTAR BIOMASSA)
+  const addBiomassEntry = (b: Omit<BiomassEntry, 'id' | 'createdAt' | 'net_weight'>) => {
+    const count = biomassEntries.length + 1;
+    const now = new Date();
+    const prefix = `BIO-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(count).padStart(3, '0')}`;
+    const net_weight = Math.max(0, (Number(b.gross_weight) || 0) - (Number(b.tare_weight) || 0));
+    const newEntry: BiomassEntry = {
+      ...b,
+      id: 'bio-' + Date.now(),
+      transaction_no: b.transaction_no || prefix,
+      net_weight,
+      createdAt: new Date().toISOString(),
+    };
+    setBiomassEntries((prev) => [newEntry, ...prev]);
+    addToast(
+      'success',
+      'Data Biomassa Berhasil Ditambahkan',
+      `${newEntry.vehicle_plate} - Netto: ${net_weight.toLocaleString('id-ID')} Kg`
+    );
+  };
+
+  const updateBiomassEntry = (id: string, data: Partial<BiomassEntry>) => {
+    setBiomassEntries((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const gross = data.gross_weight !== undefined ? Number(data.gross_weight) : item.gross_weight;
+        const tare = data.tare_weight !== undefined ? Number(data.tare_weight) : item.tare_weight;
+        const net_weight = Math.max(0, gross - tare);
+        return {
+          ...item,
+          ...data,
+          net_weight,
+        };
+      })
+    );
+    addToast('success', 'Biomassa Diperbarui', 'Perubahan data timbang biomassa berhasil disimpan.');
+  };
+
+  const deleteBiomassEntry = (id: string) => {
+    setBiomassEntries((prev) => prev.filter((b) => b.id !== id));
+    addToast('info', 'Biomassa Dihapus', 'Data pencatatan biomassa telah dihapus.');
+  };
+
+  // Biomass Partners CRUD (Kelompok Mitra / Stokpile / Fasilitas)
+  const addBiomassPartner = (p: Omit<BiomassPartner, 'id' | 'createdAt'>) => {
+    const id = 'prt-' + Date.now().toString().slice(-6);
+    const newPartner: BiomassPartner = {
+      ...p,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    setBiomassPartners((prev) => [...prev, newPartner]);
+    addToast('success', 'Kelompok Mitra Ditambahkan', `"${newPartner.name}" berhasil didaftarkan.`);
+  };
+
+  const updateBiomassPartner = (id: string, data: Partial<BiomassPartner>) => {
+    const oldP = biomassPartners.find((p) => p.id === id);
+    setBiomassPartners((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
+    if (data.name && oldP && data.name !== oldP.name) {
+      setBiomassEntries((prev) =>
+        prev.map((b) => (b.group_category === oldP.name || b.partner_id === id ? { ...b, group_category: data.name! } : b))
+      );
+    }
+    addToast('success', 'Kelompok Mitra Diperbarui', 'Data kelompok mitra/stokpile berhasil diubah.');
+  };
+
+  const deleteBiomassPartner = (id: string) => {
+    const target = biomassPartners.find((p) => p.id === id);
+    setBiomassPartners((prev) => prev.filter((p) => p.id !== id));
+    addToast('info', 'Kelompok Mitra Dihapus', `"${target?.name || ''}" telah dihapus.`);
+  };
+
+  // Biomass Types CRUD (Jenis Biomassa)
+  const addBiomassType = (t: Omit<BiomassTypeMaster, 'id'>) => {
+    const id = 'bt-' + Date.now().toString().slice(-6);
+    const newType: BiomassTypeMaster = {
+      ...t,
+      id,
+    };
+    setBiomassTypes((prev) => [...prev, newType]);
+    addToast('success', 'Jenis Biomassa Ditambahkan', `Jenis "${newType.name}" berhasil dibuat.`);
+  };
+
+  const updateBiomassType = (id: string, data: Partial<BiomassTypeMaster>) => {
+    const oldT = biomassTypes.find((t) => t.id === id);
+    setBiomassTypes((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
+    if (data.name && oldT && data.name !== oldT.name) {
+      setBiomassEntries((prev) =>
+        prev.map((b) => (b.biomass_type === oldT.name ? { ...b, biomass_type: data.name! } : b))
+      );
+    }
+    addToast('success', 'Jenis Biomassa Diperbarui', 'Data jenis biomassa berhasil diubah.');
+  };
+
+  const deleteBiomassType = (id: string) => {
+    const target = biomassTypes.find((t) => t.id === id);
+    setBiomassTypes((prev) => prev.filter((t) => t.id !== id));
+    addToast('info', 'Jenis Biomassa Dihapus', `Jenis biomassa "${target?.name || ''}" telah dihapus.`);
   };
 
   // Sale CRUD
@@ -667,7 +953,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Computed Filtered Lists
   const filteredDeposits = useMemo(() => {
     return deposits.filter((d) => {
-      // Permission check
+      // Permission check: If staff officer, strictly restrict to their assigned program
+      if (isStaff && userProgramId && d.program_id !== userProgramId) return false;
+
       if (!isAdmin && !d.is_public) return false;
       if (!isAdmin && !activePublicProgramIds.includes(d.program_id)) return false;
 
@@ -706,7 +994,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const filteredSales = useMemo(() => {
     return sales.filter((s) => {
-      // Permission check
+      // Permission check: If staff officer, strictly restrict to their assigned program
+      if (isStaff && userProgramId && s.program_id !== userProgramId) return false;
+
       if (!isAdmin && !s.is_public) return false;
       if (!isAdmin && !activePublicProgramIds.includes(s.program_id)) return false;
 
@@ -737,11 +1027,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return true;
     });
-  }, [sales, filters, isAdmin, activePublicProgramIds, programs]);
+  }, [sales, filters, isAdmin, isStaff, userProgramId, activePublicProgramIds, programs]);
 
   const filteredUtilizations = useMemo(() => {
     return utilizations.filter((u) => {
-      // Permission check
+      // Permission check: If staff officer, strictly restrict to their assigned program
+      if (isStaff && userProgramId && u.program_id !== userProgramId) return false;
+
       if (!isAdmin && !u.is_public) return false;
       if (!isAdmin && !activePublicProgramIds.includes(u.program_id)) return false;
 
@@ -777,7 +1069,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return true;
     });
-  }, [utilizations, filters, isAdmin, activePublicProgramIds, rws, programs]);
+  }, [utilizations, filters, isAdmin, isStaff, userProgramId, activePublicProgramIds, rws, programs]);
 
   // Aggregates
   const totalDepositsWeight = useMemo(() => {
@@ -863,14 +1155,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         user,
         currentUser,
         isAdmin,
+        isSuperAdmin,
+        isStaff,
+        userProgramId,
+        userProgramName,
+        canAccessProgram,
+        hydrated,
         login,
         logout,
         updateProfile,
+        accounts,
+        addAccount,
+        updateAccount,
+        deleteAccount,
         programs,
         programCategories,
         rws,
         rts,
         deposits,
+        biomassEntries,
+        addBiomassEntry,
+        updateBiomassEntry,
+        deleteBiomassEntry,
+        biomassPartners,
+        addBiomassPartner,
+        updateBiomassPartner,
+        deleteBiomassPartner,
+        biomassTypes,
+        addBiomassType,
+        updateBiomassType,
+        deleteBiomassType,
         sales,
         utilizations,
         itemTypes,

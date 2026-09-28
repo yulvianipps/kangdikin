@@ -15,8 +15,10 @@ export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
   onAddSale,
   onEditSale,
 }) => {
-  const { sales, programs, deleteSale, getProgramName } = useApp();
-  const [filterProgram, setFilterProgram] = useState<string>('all');
+  const { sales, programs, deleteSale, getProgramName, isStaff, userProgramId, userProgramName } = useApp();
+  const [filterProgram, setFilterProgram] = useState<string>(
+    isStaff && userProgramId ? userProgramId : 'all'
+  );
   const [search, setSearch] = useState<string>('');
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
 
@@ -28,8 +30,11 @@ export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
     setCurrentPage(1);
   }, [filterProgram, search]);
 
+  const effectiveProgramFilter = isStaff && userProgramId ? userProgramId : filterProgram;
+
   const filtered = sales.filter((s) => {
-    if (filterProgram !== 'all' && s.program_id !== filterProgram) return false;
+    if (isStaff && userProgramId && s.program_id !== userProgramId) return false;
+    if (effectiveProgramFilter !== 'all' && s.program_id !== effectiveProgramFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       const progName = getProgramName(s.program_id).toLowerCase();
@@ -81,16 +86,21 @@ export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div>
             <select
-              value={filterProgram}
+              value={effectiveProgramFilter}
               onChange={(e) => setFilterProgram(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
+              disabled={isStaff && !!userProgramId}
+              className={`px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 ${
+                isStaff && !!userProgramId ? 'bg-stone-100 text-stone-600 cursor-not-allowed' : ''
+              }`}
             >
-              <option value="all">Semua Program</option>
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {!isStaff && <option value="all">Semua Program</option>}
+              {programs
+                .filter((p) => (isStaff && userProgramId ? p.id === userProgramId : true))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </div>
 

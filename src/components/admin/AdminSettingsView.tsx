@@ -1,15 +1,132 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ShieldCheck, RotateCcw, User, KeyRound, Database, Download, Copy, Check, Terminal, ExternalLink, HelpCircle } from 'lucide-react';
+import { AppAccount } from '../../data/initialData';
+import {
+  ShieldCheck,
+  RotateCcw,
+  User,
+  KeyRound,
+  Database,
+  Download,
+  Copy,
+  Check,
+  Plus,
+  Trash2,
+  Edit2,
+  Lock,
+  Eye,
+  EyeOff,
+  UserPlus,
+  Shield,
+  Layers,
+} from 'lucide-react';
 import { generateLiveSqlDump, downloadSqlFile } from '../../utils/sqlExport';
 
-export const AdminSettingsView: React.FC = () => {
-  const { user, resetToDemoData, addToast, programs, rws, rts, deposits, sales, utilizations } = useApp();
-  const [activeTab, setActiveTab] = useState<'profile' | 'mysql' | 'system'>('mysql');
+interface AdminSettingsViewProps {
+  initialTab?: 'users' | 'mysql' | 'profile' | 'system';
+}
 
+export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
+  initialTab = 'users',
+}) => {
+  const {
+    user,
+    accounts,
+    addAccount,
+    updateAccount,
+    deleteAccount,
+    programs,
+    rws,
+    rts,
+    deposits,
+    sales,
+    utilizations,
+    resetToDemoData,
+    addToast,
+  } = useApp();
+
+  const [activeTab, setActiveTab] = useState<'users' | 'mysql' | 'profile' | 'system'>(initialTab);
+
+  // Profile state
   const [adminName, setAdminName] = useState(user?.name || 'Administrator KANG DIKIN');
   const [adminEmail, setAdminEmail] = useState(user?.email || 'admin@kangdikin.desa.id');
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // User Management state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPassword, setFormPassword] = useState('');
+  const [formRole, setFormRole] = useState<'admin' | 'staff'>('staff');
+  const [formProgramId, setFormProgramId] = useState(programs[0]?.id || 'prog-aren');
+  const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
+
+  const handleOpenAdd = () => {
+    setEditingAccountId(null);
+    setFormName('');
+    setFormEmail('');
+    setFormPassword('');
+    setFormRole('staff');
+    setFormProgramId(programs[0]?.id || 'prog-aren');
+    setShowAddModal(true);
+  };
+
+  const handleOpenEdit = (acc: AppAccount) => {
+    setEditingAccountId(acc.id);
+    setFormName(acc.name);
+    setFormEmail(acc.email);
+    setFormPassword(acc.password);
+    setFormRole(acc.role);
+    setFormProgramId(acc.assignedProgramId || programs[0]?.id || 'prog-aren');
+    setShowAddModal(true);
+  };
+
+  const handleSaveAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formEmail.trim() || !formPassword.trim()) {
+      addToast('error', 'Validasi Gagal', 'Email dan kata sandi wajib diisi.');
+      return;
+    }
+
+    const assignedProg = programs.find((p) => p.id === formProgramId);
+
+    if (editingAccountId) {
+      updateAccount(editingAccountId, {
+        name: formName.trim() || formEmail.trim(),
+        email: formEmail.trim().toLowerCase(),
+        password: formPassword.trim(),
+        role: formRole,
+        assignedProgramId: formRole === 'staff' ? formProgramId : undefined,
+        assignedProgramName: formRole === 'staff' ? assignedProg?.name : undefined,
+        badge: formRole === 'admin' ? 'Super Admin' : `Pengelola ${assignedProg?.name || 'Program'}`,
+        description:
+          formRole === 'admin'
+            ? 'Akses penuh ke seluruh sistem KANG DIKIN.'
+            : `Hanya mengelola & melihat data khusus program ${assignedProg?.name || ''}.`,
+      });
+    } else {
+      addAccount({
+        name: formName.trim() || formEmail.trim(),
+        email: formEmail.trim().toLowerCase(),
+        password: formPassword.trim(),
+        role: formRole,
+        assignedProgramId: formRole === 'staff' ? formProgramId : undefined,
+        assignedProgramName: formRole === 'staff' ? assignedProg?.name : undefined,
+        badge: formRole === 'admin' ? 'Super Admin' : `Pengelola ${assignedProg?.name || 'Program'}`,
+        description:
+          formRole === 'admin'
+            ? 'Akses penuh ke seluruh sistem KANG DIKIN.'
+            : `Hanya mengelola & melihat data khusus program ${assignedProg?.name || ''}.`,
+      });
+    }
+
+    setShowAddModal(false);
+  };
+
+  const toggleShowPassword = (id: string) => {
+    setShowPasswordMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,13 +179,24 @@ export const AdminSettingsView: React.FC = () => {
       {/* Header */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900 font-serif">Pengaturan & Database</h1>
+          <h1 className="text-2xl font-bold text-stone-900 font-serif">Pengaturan & Pengguna</h1>
           <p className="text-sm text-stone-500 mt-0.5">
-            Integrasi database MySQL XAMPP, profil administrator, dan arsip data
+            Kelola hak akses pengurus per bagian, database MySQL XAMPP, dan arsip data
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl">
+        <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl flex-wrap">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1.5 ${
+              activeTab === 'users'
+                ? 'bg-white text-emerald-800 shadow-xs'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Akun Pengurus & Hak Akses</span>
+          </button>
           <button
             onClick={() => setActiveTab('mysql')}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1.5 ${
@@ -103,7 +231,269 @@ export const AdminSettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* TAB 1: DATABASE MYSQL (XAMPP) */}
+      {/* TAB 1: USER MANAGEMENT / AKUN PENGURUS & HAK AKSES */}
+      {activeTab === 'users' && (
+        <div className="space-y-6">
+          {/* Information & Action bar */}
+          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-700" />
+                Daftar Akun Pengurus & Bagian Program
+              </h2>
+              <p className="text-xs text-stone-500 max-w-2xl leading-relaxed">
+                Setiap petugas/kader login dengan email dan kata sandi mereka sendiri. Petugas program hanya dapat melihat dan menginput data khusus program yang ditugaskan (misal: <strong>puteripuspitaaa@gmail.com</strong> ditugaskan ke bagian <strong>Aren</strong>).
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenAdd}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Tambah Pengurus Baru</span>
+            </button>
+          </div>
+
+          {/* Accounts Table */}
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="px-5 py-3.5">Nama & Email Petugas</th>
+                    <th className="px-5 py-3.5">Bagian / Program Ditugaskan</th>
+                    <th className="px-5 py-3.5">Hak Akses</th>
+                    <th className="px-5 py-3.5">Kata Sandi</th>
+                    <th className="px-5 py-3.5 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {accounts.map((acc) => {
+                    const isSuper = acc.role === 'admin';
+                    const showPass = !!showPasswordMap[acc.id];
+                    return (
+                      <tr key={acc.id} className="hover:bg-stone-50/70 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="font-bold text-stone-900">{acc.name}</div>
+                          <div className="text-stone-500 font-mono text-[11px] mt-0.5">
+                            {acc.email}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {isSuper ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-stone-100 text-stone-800 font-semibold border border-stone-200 text-[11px]">
+                              <Layers className="w-3 h-3 text-stone-500" />
+                              Semua Program
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 font-bold border border-amber-200 text-[11px]">
+                              🌴 Bagian: {acc.assignedProgramName || 'Program Terkait'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider ${
+                              isSuper
+                                ? 'bg-emerald-700 text-white'
+                                : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            }`}
+                          >
+                            {acc.badge || (isSuper ? 'Super Admin' : 'Pengelola')}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-stone-100 px-2 py-0.5 rounded text-stone-800 text-xs">
+                              {showPass ? acc.password : '••••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => toggleShowPassword(acc.id)}
+                              className="text-stone-400 hover:text-stone-700 p-1"
+                              title={showPass ? 'Sembunyikan sandi' : 'Lihat sandi'}
+                            >
+                              {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-right space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(acc)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                          {accounts.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Yakin ingin menghapus akun ${acc.name} (${acc.email})?`)) {
+                                  deleteAccount(acc.id);
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Hapus</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Modal Tambah / Edit Akun */}
+          {showAddModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+              <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
+                <div className="bg-emerald-950 text-white px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <UserPlus className="w-5 h-5 text-emerald-300" />
+                    <h3 className="font-bold text-sm">
+                      {editingAccountId ? 'Edit Akun Pengurus' : 'Tambah Akun Pengurus Baru'}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="text-stone-400 hover:text-white p-1 rounded-lg"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveAccount} className="p-6 space-y-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Nama Petugas / Kader <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="misal: Puteri Puspita"
+                      required
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-stone-900 font-medium focus:ring-2 focus:ring-emerald-600 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Alamat Email (Username Login) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      placeholder="misal: puteripuspitaaa@gmail.com"
+                      required
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-stone-900 font-medium focus:ring-2 focus:ring-emerald-600 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Kata Sandi <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formPassword}
+                      onChange={(e) => setFormPassword(e.target.value)}
+                      placeholder="misal: a atau kata sandi aman"
+                      required
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-stone-900 font-medium focus:ring-2 focus:ring-emerald-600 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Tingkat Hak Akses <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setFormRole('staff')}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          formRole === 'staff'
+                            ? 'bg-emerald-50 border-emerald-600 text-emerald-900 font-bold'
+                            : 'bg-stone-50 border-stone-200 text-stone-600'
+                        }`}
+                      >
+                        <div className="font-bold">Khusus Bagian Program</div>
+                        <div className="text-[10px] text-stone-500 font-normal">
+                          Hanya akses 1 program tertentu
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setFormRole('admin')}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          formRole === 'admin'
+                            ? 'bg-emerald-50 border-emerald-600 text-emerald-900 font-bold'
+                            : 'bg-stone-50 border-stone-200 text-stone-600'
+                        }`}
+                      >
+                        <div className="font-bold">Super Admin</div>
+                        <div className="text-[10px] text-stone-500 font-normal">
+                          Akses ke semua program & sistem
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {formRole === 'staff' && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5">
+                      <label className="block font-semibold text-amber-900">
+                        Pilih Bagian Program yang Dikelola <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={formProgramId}
+                        onChange={(e) => setFormProgramId(e.target.value)}
+                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-stone-900 font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                      >
+                        {programs.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.category})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-amber-800">
+                        Petugas ini hanya akan melihat dan mencatat data transaksi program yang dipilih saat mereka login.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-xs transition-colors"
+                    >
+                      {editingAccountId ? 'Simpan Perubahan' : 'Buat Akun'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: DATABASE MYSQL (XAMPP) */}
       {activeTab === 'mysql' && (
         <div className="space-y-6">
           {/* Banner Status */}
@@ -176,101 +566,29 @@ export const AdminSettingsView: React.FC = () => {
               <span className="text-xs text-stone-500 block mt-0.5">phpMyAdmin 5.x+</span>
             </div>
           </div>
-
-          {/* Panduan Langkah demi Langkah */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs space-y-6">
-            <div className="border-b border-stone-100 pb-4">
-              <h3 className="text-base font-bold text-stone-900">
-                Cara Memasang Database di XAMPP & phpMyAdmin
-              </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Ikuti 5 langkah mudah berikut pada komputer/laptop Anda:
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-                <span className="w-6 h-6 rounded-full bg-emerald-800 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                  1
-                </span>
-                <div className="text-xs space-y-1">
-                  <strong className="text-stone-900 block">Nyalakan XAMPP Control Panel</strong>
-                  <p className="text-stone-600">
-                    Buka aplikasi <strong>XAMPP</strong> di laptop Anda, lalu klik tombol <strong>"Start"</strong> pada modul <strong>Apache</strong> dan <strong>MySQL</strong> hingga indikator berwarna hijau.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-                <span className="w-6 h-6 rounded-full bg-emerald-800 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                  2
-                </span>
-                <div className="text-xs space-y-1">
-                  <strong className="text-stone-900 block">Buka phpMyAdmin di Browser</strong>
-                  <p className="text-stone-600">
-                    Ketik alamat <code className="bg-stone-200 px-1.5 py-0.5 rounded text-emerald-900 font-mono">http://localhost/phpmyadmin</code> di Google Chrome atau browser Anda.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-                <span className="w-6 h-6 rounded-full bg-emerald-800 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                  3
-                </span>
-                <div className="text-xs space-y-1">
-                  <strong className="text-stone-900 block">Buat Database Baru</strong>
-                  <p className="text-stone-600">
-                    Di bilah kiri phpMyAdmin, klik <strong>"Baru" / "New"</strong>. Masukkan nama database: <code className="bg-stone-200 px-1.5 py-0.5 rounded text-emerald-900 font-bold font-mono">kang_dikin</code>, lalu klik tombol <strong>"Buat" / "Create"</strong>.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-                <span className="w-6 h-6 rounded-full bg-emerald-800 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                  4
-                </span>
-                <div className="text-xs space-y-1">
-                  <strong className="text-stone-900 block">Impor File .sql</strong>
-                  <p className="text-stone-600">
-                    Pilih database <code className="font-mono">kang_dikin</code> yang baru dibuat, klik tab menu <strong>"Import"</strong> di bagian atas. Klik tombol <strong>"Choose File"</strong> dan pilih file <code className="font-mono font-bold">kang_dikin.sql</code> yang Anda unduh dari tombol di atas.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-                <span className="w-6 h-6 rounded-full bg-emerald-800 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                  5
-                </span>
-                <div className="text-xs space-y-1">
-                  <strong className="text-stone-900 block">Selesai & Siap Digunakan!</strong>
-                  <p className="text-stone-600">
-                    Klik tombol <strong>"Kirim" / "Go"</strong> di bawah halaman. Dalam 2 detik seluruh tabel beserta seluruh data setoran, penjualan, dan master program langsung terisi dan siap digunakan.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* TAB 2: PROFIL PENGELOLA */}
+      {/* TAB 3: PROFIL ADMIN */}
       {activeTab === 'profile' && (
-        <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs max-w-xl">
-          <h2 className="text-base font-bold text-stone-900 mb-1">Informasi Akun Pengelola</h2>
-          <p className="text-xs text-stone-500 mb-6">
-            Identitas petugas administrator sistem KANG DIKIN
-          </p>
+        <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs max-w-xl space-y-6">
+          <div>
+            <h2 className="text-base font-bold text-stone-900 mb-1">Informasi Profil Administrator</h2>
+            <p className="text-xs text-stone-500">
+              Data identitas penanggung jawab aplikasi KANG DIKIN
+            </p>
+          </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Nama Lengkap Petugas
+                Nama Lengkap / Instansi
               </label>
               <input
                 type="text"
                 value={adminName}
                 onChange={(e) => setAdminName(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600 font-medium"
+                className="w-full px-3 py-2 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
                 required
               />
             </div>
@@ -312,7 +630,7 @@ export const AdminSettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: RESET DEMO */}
+      {/* TAB 4: RESET DEMO */}
       {activeTab === 'system' && (
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs max-w-xl space-y-6">
           <div>
@@ -343,4 +661,3 @@ export const AdminSettingsView: React.FC = () => {
     </div>
   );
 };
-

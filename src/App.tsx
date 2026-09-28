@@ -7,6 +7,7 @@ import { PublicHeader } from './components/layout/PublicHeader';
 import { PublicFooter } from './components/layout/PublicFooter';
 import { PublicLandingView } from './components/public/PublicLandingView';
 import { PublicProgramsView } from './components/public/PublicProgramsView';
+import { PublicBiomassView } from './components/public/PublicBiomassView';
 import { DepositTable } from './components/tables/DepositTable';
 import { SaleTable } from './components/tables/SaleTable';
 import { UtilizationTable } from './components/tables/UtilizationTable';
@@ -21,6 +22,7 @@ import { AdminProgramView } from './components/admin/AdminProgramView';
 import { AdminDepositView } from './components/admin/AdminDepositView';
 import { AdminSaleView } from './components/admin/AdminSaleView';
 import { AdminUtilizationView } from './components/admin/AdminUtilizationView';
+import { AdminBiomassView } from './components/admin/AdminBiomassView';
 import { AdminRegionView } from './components/admin/AdminRegionView';
 import { AdminFrontPageView } from './components/admin/AdminFrontPageView';
 import { AdminReportsView } from './components/admin/AdminReportsView';
@@ -29,11 +31,12 @@ import { AdminSettingsView } from './components/admin/AdminSettingsView';
 // Modals
 import { LoginModal } from './components/modals/LoginModal';
 import { DepositFormModal } from './components/modals/DepositFormModal';
+import { BiomassFormModal } from './components/modals/BiomassFormModal';
 import { SaleFormModal } from './components/modals/SaleFormModal';
 import { UtilizationFormModal } from './components/modals/UtilizationFormModal';
 import { ProgramFormModal } from './components/modals/ProgramFormModal';
 
-import { Deposit, Sale, Utilization, Program } from './types';
+import { Deposit, Sale, Utilization, Program, BiomassEntry } from './types';
 
 // Alamat rahasia untuk membuka form login: https://domain-anda/#/masuk-pengurus
 // Ganti dengan kata yang susah ditebak jika perlu.
@@ -56,7 +59,7 @@ const MainContent: React.FC = () => {
 
   // Public active tab
   const [publicTab, setPublicTab] = useState<
-    'beranda' | 'program' | 'setoran' | 'penjualan' | 'pemanfaatan' | 'rw' | 'laporan'
+    'beranda' | 'biomassa' | 'program' | 'setoran' | 'penjualan' | 'pemanfaatan' | 'rw' | 'laporan'
   >('beranda');
 
   // Admin active menu
@@ -65,6 +68,7 @@ const MainContent: React.FC = () => {
   // Modal States
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showBiomassModal, setShowBiomassModal] = useState(false);
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [showUtilModal, setShowUtilModal] = useState(false);
   const [showProgramModal, setShowProgramModal] = useState(false);
@@ -83,6 +87,7 @@ const MainContent: React.FC = () => {
 
   // Edit states for modals
   const [editingDeposit, setEditingDeposit] = useState<Deposit | null>(null);
+  const [editingBiomass, setEditingBiomass] = useState<BiomassEntry | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editingUtil, setEditingUtil] = useState<Utilization | null>(null);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
@@ -96,6 +101,16 @@ const MainContent: React.FC = () => {
   const handleOpenEditDeposit = (deposit: Deposit) => {
     setEditingDeposit(deposit);
     setShowDepositModal(true);
+  };
+
+  const handleOpenAddBiomass = () => {
+    setEditingBiomass(null);
+    setShowBiomassModal(true);
+  };
+
+  const handleOpenEditBiomass = (entry: BiomassEntry) => {
+    setEditingBiomass(entry);
+    setShowBiomassModal(true);
   };
 
   const handleOpenAddSale = () => {
@@ -159,6 +174,13 @@ const MainContent: React.FC = () => {
           />
         )}
 
+        {adminMenu === 'biomassa' && (
+          <AdminBiomassView
+            onAddBiomass={handleOpenAddBiomass}
+            onEditBiomass={handleOpenEditBiomass}
+          />
+        )}
+
         {adminMenu === 'program' && (
           <AdminProgramView
             onAddProgram={handleOpenAddProgram}
@@ -199,8 +221,8 @@ const MainContent: React.FC = () => {
         {adminMenu === 'rekap-periode' && <AdminReportsView initialSubTab="period" />}
         {adminMenu === 'export' && <AdminReportsView initialSubTab="export" />}
 
-        {adminMenu === 'pengguna' && <AdminSettingsView />}
-        {adminMenu === 'pengaturan' && <AdminSettingsView />}
+        {adminMenu === 'pengguna' && <AdminSettingsView initialTab="users" />}
+        {adminMenu === 'pengaturan' && <AdminSettingsView initialTab="mysql" />}
 
         {/* Modals Container */}
         {showDepositModal && (
@@ -209,6 +231,16 @@ const MainContent: React.FC = () => {
             onClose={() => {
               setShowDepositModal(false);
               setEditingDeposit(null);
+            }}
+          />
+        )}
+
+        {showBiomassModal && (
+          <BiomassFormModal
+            initialData={editingBiomass}
+            onClose={() => {
+              setShowBiomassModal(false);
+              setEditingBiomass(null);
             }}
           />
         )}
@@ -257,11 +289,12 @@ const MainContent: React.FC = () => {
       <PublicHeader
         currentTab={publicTab}
         onSelectTab={(tab) => {
-          if (['beranda', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
+          if (['beranda', 'biomassa', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
             setPublicTab(tab as any);
           }
         }}
         onSwitchToAdmin={() => setViewMode('admin')}
+        onOpenLogin={() => setShowLoginModal(true)}
       />
 
       {/* PUBLIC MAIN CONTENT */}
@@ -269,13 +302,15 @@ const MainContent: React.FC = () => {
         {publicTab === 'beranda' && (
           <PublicLandingView
             onNavigate={(tab) => {
-              if (['beranda', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
+              if (['beranda', 'biomassa', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
                 setPublicTab(tab as any);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }
             }}
           />
         )}
+
+        {publicTab === 'biomassa' && <PublicBiomassView />}
 
         {publicTab === 'program' && (
           <PublicProgramsView
@@ -365,11 +400,12 @@ const MainContent: React.FC = () => {
       {/* FOOTER */}
       <PublicFooter
         onSelectTab={(tab) => {
-          if (['beranda', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
+          if (['beranda', 'biomassa', 'program', 'setoran', 'penjualan', 'pemanfaatan', 'rw', 'laporan'].includes(tab)) {
             setPublicTab(tab as any);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
+        onOpenLogin={() => setShowLoginModal(true)}
       />
 
       {/* Modals Container */}
@@ -378,6 +414,9 @@ const MainContent: React.FC = () => {
           onClose={() => {
             setShowLoginModal(false);
             history.replaceState(null, '', window.location.pathname + window.location.search);
+          }}
+          onSuccess={() => {
+            setViewMode('admin');
           }}
         />
       )}

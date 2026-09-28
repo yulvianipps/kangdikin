@@ -16,6 +16,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenAddUtilization,
 }) => {
   const {
+    user,
+    isSuperAdmin,
+    isStaff,
+    userProgramId,
+    userProgramName,
     deposits,
     sales,
     utilizations,
@@ -30,9 +35,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     getRTName,
   } = useApp();
 
+  // Filter lists if user is staff for a specific program
+  const displayDeposits = isStaff && userProgramId
+    ? deposits.filter((d) => d.program_id === userProgramId)
+    : deposits;
+
+  const displaySales = isStaff && userProgramId
+    ? sales.filter((s) => s.program_id === userProgramId)
+    : sales;
+
+  const displayUtilizations = isStaff && userProgramId
+    ? utilizations.filter((u) => u.program_id === userProgramId)
+    : utilizations;
+
   // Combine recent activities
   const recentActivities = [
-    ...deposits.slice(0, 4).map((d) => ({
+    ...displayDeposits.slice(0, 4).map((d) => ({
       id: d.id,
       date: d.date,
       type: 'Setoran',
@@ -40,7 +58,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       description: `${d.weight} Kg (${getProgramName(d.program_id)}) - ${getRWName(d.rw_id)} ${getRTName(d.rt_id)}`,
       amountOrWeight: `${d.weight} Kg`,
     })),
-    ...sales.slice(0, 3).map((s) => ({
+    ...displaySales.slice(0, 3).map((s) => ({
       id: s.id,
       date: s.date,
       type: 'Penjualan',
@@ -48,7 +66,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       description: `${s.item_type} (${s.weight} Kg) - ${getProgramName(s.program_id)}`,
       amountOrWeight: formatRupiah(s.total),
     })),
-    ...utilizations.slice(0, 3).map((u) => ({
+    ...displayUtilizations.slice(0, 3).map((u) => ({
       id: u.id,
       date: u.date,
       type: 'Pemanfaatan',
@@ -60,8 +78,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 6);
 
+  // Filter programs list to only their program if staff
+  const relevantPrograms = isStaff && userProgramId
+    ? programs.filter((p) => p.id === userProgramId)
+    : programs;
+
   // Program summary calculation
-  const programSummaries = programs.map((prog) => {
+  const programSummaries = relevantPrograms.map((prog) => {
     const progDeposits = deposits.filter((d) => d.program_id === prog.id);
     const progSales = sales.filter((s) => s.program_id === prog.id);
     const progUtils = utilizations.filter((u) => u.program_id === prog.id);
@@ -85,18 +108,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Scope banner for staff */}
+      {isStaff && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900">
+          <div>
+            <div className="font-bold flex items-center gap-1.5 text-sm text-amber-950">
+              <span>🌾 Mode Pengelola: {userProgramName || 'Program Terpilih'}</span>
+            </div>
+            <p className="mt-0.5 text-amber-800">
+              Anda masuk sebagai <strong>{user?.name}</strong>. Anda hanya dapat melihat, menambah, dan mengunduh data khusus program <strong>{userProgramName}</strong>.
+            </p>
+          </div>
+          <span className="px-3 py-1 bg-amber-200/70 border border-amber-300 rounded-lg font-bold shrink-0 self-start sm:self-auto text-[11px]">
+            Data Terfilter Otomatis
+          </span>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-stone-900 font-serif">Dashboard</h1>
           <p className="text-sm text-stone-500 mt-0.5">
-            Selamat datang di Dashboard KANG DIKIN
+            {isStaff
+              ? `Ringkasan pencatatan & perputaran program ${userProgramName}`
+              : 'Selamat datang di Dashboard KANG DIKIN (Akses Administrator)'}
           </p>
         </div>
 
         {/* Quick action buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => onNavigate('biomassa')}
+            className="px-3.5 py-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-800 rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+          >
+            <span>🚚 Daftar Biomassa</span>
+          </button>
           <button
             onClick={onOpenAddDeposit}
             className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"

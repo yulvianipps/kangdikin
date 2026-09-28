@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   Leaf,
+  Truck,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -37,7 +38,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   onSwitchToPublic,
   children,
 }) => {
-  const { user, logout } = useApp();
+  const { user, isSuperAdmin, isStaff, userProgramName, logout } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Define structured sidebar navigation
@@ -51,6 +52,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     {
       title: 'DATA',
       items: [
+        { id: 'biomassa', label: 'Daftar Biomassa', icon: Truck },
         { id: 'program', label: 'Program', icon: FolderKanban },
         { id: 'setoran', label: 'Setoran', icon: ArrowDownLeft },
         { id: 'penjualan', label: 'Penjualan', icon: ArrowUpRight },
@@ -90,11 +92,21 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     },
   ];
 
+  // Filter sections for staff members: restrict website & system settings
+  const visibleNavSections = navSections.filter((section) => {
+    if (isStaff && (section.title === 'WEBSITE' || section.title === 'SISTEM')) {
+      return false;
+    }
+    return true;
+  });
+
   // Helper for current page title
   const getPageTitle = (menuId: string): string => {
     switch (menuId) {
       case 'dashboard':
         return 'Dashboard Utama';
+      case 'biomassa':
+        return 'DAFTAR BIOMASSA (Timbang & Logistik)';
       case 'program':
         return 'Data Program';
       case 'setoran':
@@ -200,7 +212,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
           {/* Nav Items Scrollable */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 no-scrollbar">
-            {navSections.map((section, sIdx) => (
+            {visibleNavSections.map((section, sIdx) => (
               <div key={sIdx}>
                 {section.title && (
                   <div className="px-3 mb-1.5 text-[10px] font-bold tracking-wider text-stone-400 uppercase">
@@ -273,10 +285,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Clean Admin Topbar */}
         <header className="hidden lg:flex bg-white border-b border-stone-200 h-16 items-center justify-between px-8 shadow-xs">
-          <div>
+          <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-stone-900">
               {getPageTitle(currentMenu)}
             </h2>
+            {isStaff ? (
+              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-900 border border-amber-300">
+                🔒 Data Khusus: {userProgramName || 'Program'}
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300">
+                👑 Super Admin (Akses Penuh)
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -291,9 +312,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <div className="h-6 w-px bg-stone-200" />
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-medium text-stone-600">
-                {user?.name || 'Admin'}
-              </span>
+              <div className="text-right">
+                <span className="text-xs font-bold text-stone-900 block leading-tight">
+                  {user?.name || 'Pengurus'}
+                </span>
+                <span className="text-[10px] text-stone-500 block">
+                  {user?.email}
+                </span>
+              </div>
               <button
                 onClick={logout}
                 className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200"
