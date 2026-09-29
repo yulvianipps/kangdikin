@@ -34,7 +34,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/70 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
-        {/* Header */}
         <div className="bg-emerald-950 text-white px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-800 flex items-center justify-center text-emerald-200 shadow-xs">
@@ -54,15 +53,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
           </button>
         </div>
 
-        {/* Security Banner */}
         <div className="bg-emerald-50/80 px-6 py-3 border-b border-emerald-100 flex items-start gap-2.5 text-xs text-emerald-950">
           <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            Silakan masukkan email dan kata sandi resmi Anda untuk mengakses panel pengelola sistem KANG DIKIN.
+            Masukkan email dan kata sandi akun Anda masing-masing untuk mengakses panel sesuai bagian yang ditugaskan.
           </p>
         </div>
 
-        {/* Form Body */}
         <div className="p-6 space-y-4">
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-medium text-xs">
@@ -79,7 +76,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@kangdikin.id"
+                placeholder="nama@email.com"
                 required
                 autoFocus
                 autoComplete="username"
@@ -88,9 +85,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
             </div>
 
             <div>
-              <label className="block font-semibold text-stone-700 mb-1.5">
-                Kata Sandi
-              </label>
+              <label className="block font-semibold text-stone-700 mb-1.5">Kata Sandi</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -125,11 +120,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
           </form>
         </div>
 
-        {/* Footer */}
         <div className="bg-stone-50 px-6 py-3.5 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500">
           <span className="flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-emerald-700" />
-            Keamanan hak akses terenkripsi
+            Akses sesuai hak masing-masing
           </span>
           <button
             type="button"

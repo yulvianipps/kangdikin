@@ -38,7 +38,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   onSwitchToPublic,
   children,
 }) => {
-  const { user, isSuperAdmin, isStaff, userProgramName, logout } = useApp();
+  const { user, isSuperAdmin, isStaff, isViewer, userProgramName, logout } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isArenStaff = isStaff && user?.assignedProgramId === 'prog-aren';
@@ -129,9 +129,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     },
   ];
 
-  // Filter sections for staff members: restrict website & system settings
+  // Staff & viewer: menu WEBSITE dan SISTEM disembunyikan
   const visibleNavSections = navSections.filter((section) => {
-    if (isStaff && (section.title === 'WEBSITE' || section.title === 'SISTEM')) {
+    if ((isStaff || isViewer) && (section.title === 'WEBSITE' || section.title === 'SISTEM')) {
       return false;
     }
     return true;
@@ -326,7 +326,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <h2 className="text-lg font-bold text-stone-900">
               {getPageTitle(currentMenu)}
             </h2>
-            {isStaff ? (
+            {isViewer ? (
+              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-stone-100 text-stone-700 border border-stone-300">
+                👁️ Hanya Lihat (Tanpa Ubah Data)
+              </span>
+            ) : isStaff ? (
               <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-900 border border-amber-300">
                 🔒 Data Khusus: {userProgramName || 'Program'}
               </span>

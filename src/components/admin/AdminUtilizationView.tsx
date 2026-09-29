@@ -24,8 +24,9 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
     getProgramName,
     getRWName,
     isStaff,
+    isViewer,
+    canEditProgram,
     userProgramId,
-    userProgramName,
   } = useApp();
 
   const [filterProgram, setFilterProgram] = useState<string>(
@@ -102,16 +103,19 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
           <h1 className="text-2xl font-bold text-stone-900 font-serif">Data Pemanfaatan</h1>
           <p className="text-sm text-stone-500 mt-0.5">
             Penyaluran dana bersama untuk sosial, lingkungan, dan kemaslahatan warga
+            {isViewer && ' (mode hanya lihat)'}
           </p>
         </div>
 
-        <button
-          onClick={onAddUtilization}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Pemanfaatan</span>
-        </button>
+        {!isViewer && (
+          <button
+            onClick={onAddUtilization}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Pemanfaatan</span>
+          </button>
+        )}
       </div>
 
       {/* Filter and Summary */}
@@ -217,7 +221,7 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setFilterProgram('all');
+                    setFilterProgram(isStaff && userProgramId ? userProgramId : 'all');
                     setFilterRW('all');
                     setFilterCategory('all');
                     setSearch('');
@@ -254,63 +258,70 @@ export const AdminUtilizationView: React.FC<AdminUtilizationViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200">
-              {paginated.map((item, index) => (
-                <tr key={item.id} className="hover:bg-stone-50/70 transition-colors">
-                  <td className="py-3 px-4 text-center text-xs text-stone-400 font-medium">
-                    {(currentPage - 1) * pageSize + index + 1}
-                  </td>
-                  <td className="py-3 px-4 text-xs font-medium text-stone-700 whitespace-nowrap">
-                    {item.date}
-                    <span className="block text-[11px] text-stone-400 font-normal">{item.day}</span>
-                  </td>
-                  <td className="py-3 px-4 text-xs font-mono font-semibold text-emerald-800 whitespace-nowrap">
-                    {item.transaction_no}
-                  </td>
-                  <td className="py-3 px-4 text-xs">
-                    <div className="font-semibold text-stone-900">
-                      {item.recipient || <span className="text-stone-400 font-normal italic">Warga RW {getRWName(item.rw_id)}</span>}
-                    </div>
-                    {item.description && (
-                      <span className="block text-[11px] text-stone-500 line-clamp-1" title={item.description}>
-                        {item.description}
+              {paginated.map((item, index) => {
+                const canEdit = canEditProgram(item.program_id);
+                return (
+                  <tr key={item.id} className="hover:bg-stone-50/70 transition-colors">
+                    <td className="py-3 px-4 text-center text-xs text-stone-400 font-medium">
+                      {(currentPage - 1) * pageSize + index + 1}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-medium text-stone-700 whitespace-nowrap">
+                      {item.date}
+                      <span className="block text-[11px] text-stone-400 font-normal">{item.day}</span>
+                    </td>
+                    <td className="py-3 px-4 text-xs font-mono font-semibold text-emerald-800 whitespace-nowrap">
+                      {item.transaction_no}
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      <div className="font-semibold text-stone-900">
+                        {item.recipient || <span className="text-stone-400 font-normal italic">Warga RW {getRWName(item.rw_id)}</span>}
+                      </div>
+                      {item.description && (
+                        <span className="block text-[11px] text-stone-500 line-clamp-1" title={item.description}>
+                          {item.description}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-stone-900">
+                      {getProgramName(item.program_id)}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-medium text-stone-800">
+                      {getRWName(item.rw_id)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200">
+                        {item.type}
                       </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 font-semibold text-stone-900">
-                    {getProgramName(item.program_id)}
-                  </td>
-                  <td className="py-3 px-4 text-xs font-medium text-stone-800">
-                    {getRWName(item.rw_id)}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200">
-                      {item.type}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right font-bold text-stone-900 whitespace-nowrap">
-                    {formatRupiah(item.amount)}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="inline-flex items-center gap-1.5">
-                      <button
-                        onClick={() => onEditUtilization(item)}
-                        className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 border border-emerald-300 rounded-md transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setDeletingUtil(item)}
-                        className="px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 rounded-md transition-colors"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-stone-900 whitespace-nowrap">
+                      {formatRupiah(item.amount)}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {canEdit ? (
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => onEditUtilization(item)}
+                            className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 border border-emerald-300 rounded-md transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setDeletingUtil(item)}
+                            className="px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 rounded-md transition-colors"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-stone-400 italic">Hanya lihat</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-xs text-stone-400">
+                  <td colSpan={9} className="py-12 text-center text-xs text-stone-400">
                     Tidak ada data pemanfaatan yang tercatat.
                   </td>
                 </tr>

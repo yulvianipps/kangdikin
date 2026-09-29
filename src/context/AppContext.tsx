@@ -56,12 +56,15 @@ export interface RWSummary {
 interface AppContextType {
   user: User | null;
   currentUser: User;
-  isAdmin: boolean;
+  isAdmin: boolean; // boleh masuk panel (super admin, staff, viewer)
   isSuperAdmin: boolean;
   isStaff: boolean;
+  isViewer: boolean; // hanya lihat, tanpa CRUD
   userProgramId?: string;
   userProgramName?: string;
   canAccessProgram: (progId: string) => boolean;
+  canEditProgram: (progId?: string) => boolean;
+  canEditBiomass: boolean;
   hydrated: boolean;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
@@ -234,9 +237,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  // ===== Peran & hak akses =====
+  // Super Admin : semua modul
+  // Staff       : CRUD hanya untuk program yang ditugaskan
+  // Viewer      : hanya melihat detail (tanpa tambah / ubah / hapus)
   const isSuperAdmin = user?.role === 'admin';
   const isStaff = user?.role === 'staff';
-  const isAdmin = isSuperAdmin || isStaff;
+  const isViewer = user?.role === 'viewer';
+  const isAdmin = isSuperAdmin || isStaff || isViewer; // boleh masuk panel
   const userProgramId = user?.assignedProgramId;
   const userProgramName = user?.assignedProgramName;
 
@@ -245,6 +253,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (isStaff && userProgramId) return userProgramId === progId;
     return true;
   };
+
+  const canEditProgram = (progId?: string) => {
+    if (isSuperAdmin) return true;
+    if (isStaff && userProgramId && progId) return userProgramId === progId;
+    return false;
+  };
+
+  // Modul biomassa/timbangan hanya untuk Super Admin dan pengelola Aren
+  const canEditBiomass = isSuperAdmin || (isStaff && userProgramId === 'prog-aren');
 
   // User Accounts state
   const [accounts, setAccounts] = useState<AppAccount[]>(() => {
@@ -416,7 +433,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(STORAGE_KEYS.FRONT_PAGE_CONTENT, JSON.stringify(frontPageContent));
   }, [frontPageContent]);
 
-  // Sync to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
   }, [programs]);
@@ -486,6 +502,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // ===== Penjaga hak akses =====
+  const denyToast = (message: string) => {
+    addToast('error', 'Akses Ditolak', message);
+  };
+
+  // Transaksi milik satu program: Super Admin atau staff program tsb.
+  const guardProgram = (progId?: string): boolean => {
+    if (canEditProgram(progId)) return true;
+    denyToast(
+      isViewer
+        ? 'Akun Anda hanya dapat melihat data (tanpa hak ubah).'
+        : 'Anda hanya dapat mengelola data program yang ditugaskan.'
+    );
+    return false;
+  };
+
+  // Data master / pengaturan sistem: khusus Super Admin
+  const guardSuper = (): boolean => {
+    if (isSuperAdmin) return true;
+    denyToast('Hanya Super Admin yang dapat mengubah data master dan pengaturan.');
+    return false;
+  };
+
+  // Modul biomassa: Super Admin dan pengelola Aren
+  const guardBiomass = (): boolean => {
+    if (canEditBiomass) return true;
+    denyToast('Anda tidak memiliki hak untuk mengubah data biomassa.');
+    return false;
+  };
+
   // Auth Helpers
   const login = (email: string, pass: string): boolean => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -511,6 +557,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         `Selamat datang, ${matchedAccount.name} (${
           matchedAccount.role === 'admin'
             ? 'Super Admin'
+            : matchedAccount.role === 'viewer'
+            ? 'Hanya Lihat'
             : matchedAccount.assignedProgramName
             ? `Pengelola ${matchedAccount.assignedProgramName}`
             : 'Pengurus'
@@ -540,6 +588,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addAccount = (accData: Omit<AppAccount, 'id'>) => {
+    if (!guardSuper()) return;
     const newAcc: AppAccount = {
       ...accData,
       id: `usr-${Date.now()}`,
@@ -549,6 +598,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateAccount = (id: string, updated: Partial<AppAccount>) => {
+    if (!guardSuper()) return;
     setAccounts((prev) =>
       prev.map((acc) => (acc.id === id ? { ...acc, ...updated } : acc))
     );
@@ -556,6 +606,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteAccount = (id: string) => {
+    if (!guardSuper()) return;
     setAccounts((prev) => prev.filter((acc) => acc.id !== id));
     addToast('info', 'Akun Dihapus', 'Akun pengurus berhasil dihapus.');
   };
@@ -570,6 +621,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetToDemoData = () => {
+    if (!guardSuper()) return;
     setPrograms(INITIAL_PROGRAMS);
     setProgramCategories(INITIAL_PROGRAM_CATEGORIES);
     setRws(INITIAL_RWS);
@@ -610,6 +662,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Program Category CRUD
   const addProgramCategory = (cat: Omit<ProgramCategory, 'id' | 'createdAt'>) => {
+    if (!guardSuper()) return;
     const id = 'cat-' + (cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')) + '-' + Date.now().toString().slice(-4);
     const newCat: ProgramCategory = {
       ...cat,
@@ -621,6 +674,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProgramCategory = (id: string, data: Partial<ProgramCategory>) => {
+    if (!guardSuper()) return;
     const oldCat = programCategories.find((c) => c.id === id);
     setProgramCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)));
 
@@ -634,6 +688,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProgramCategory = (id: string): boolean => {
+    if (!guardSuper()) return false;
     const target = programCategories.find((c) => c.id === id);
     if (!target) return false;
 
@@ -655,6 +710,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Program CRUD
   const addProgram = (p: Omit<Program, 'id' | 'createdAt'>) => {
+    if (!guardSuper()) return;
     const id = 'prog-' + (p.slug || p.name.toLowerCase().replace(/\s+/g, '-')) + '-' + Date.now().toString().slice(-4);
     const newProg: Program = {
       ...p,
@@ -666,11 +722,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProgram = (id: string, data: Partial<Program>) => {
+    if (!guardSuper()) return;
     setPrograms((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
     addToast('success', 'Program Diperbarui', 'Data program berhasil disimpan.');
   };
 
   const deleteProgram = (id: string) => {
+    if (!guardSuper()) return;
     const target = programs.find((p) => p.id === id);
     setPrograms((prev) => prev.filter((p) => p.id !== id));
     addToast('info', 'Program Dihapus', `Program "${target?.name || ''}" berhasil dihapus.`);
@@ -678,6 +736,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Deposit CRUD
   const addDeposit = (d: Omit<Deposit, 'id' | 'createdAt'>) => {
+    if (!guardProgram(d.program_id)) return;
     const count = deposits.length + 1;
     const now = new Date();
     const prefix = `STR-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(count).padStart(3, '0')}`;
@@ -692,17 +751,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateDeposit = (id: string, data: Partial<Deposit>) => {
+    const old = deposits.find((x) => x.id === id);
+    if (!old || !guardProgram(old.program_id)) return;
+    if (data.program_id && !guardProgram(data.program_id)) return;
     setDeposits((prev) => prev.map((d) => (d.id === id ? { ...d, ...data } : d)));
     addToast('success', 'Setoran Diperbarui', 'Perubahan data setoran berhasil disimpan.');
   };
 
   const deleteDeposit = (id: string) => {
+    const old = deposits.find((x) => x.id === id);
+    if (!old || !guardProgram(old.program_id)) return;
     setDeposits((prev) => prev.filter((d) => d.id !== id));
     addToast('info', 'Setoran Dihapus', 'Data setoran telah dihapus dari sistem.');
   };
 
   // Biomass CRUD (DAFTAR BIOMASSA)
   const addBiomassEntry = (b: Omit<BiomassEntry, 'id' | 'createdAt' | 'net_weight'>) => {
+    if (!guardBiomass()) return;
     const count = biomassEntries.length + 1;
     const now = new Date();
     const prefix = `BIO-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(count).padStart(3, '0')}`;
@@ -723,6 +788,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateBiomassEntry = (id: string, data: Partial<BiomassEntry>) => {
+    if (!guardBiomass()) return;
     setBiomassEntries((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
@@ -740,12 +806,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteBiomassEntry = (id: string) => {
+    if (!guardBiomass()) return;
     setBiomassEntries((prev) => prev.filter((b) => b.id !== id));
     addToast('info', 'Biomassa Dihapus', 'Data pencatatan biomassa telah dihapus.');
   };
 
   // Biomass Partners CRUD (Kelompok Mitra / Stokpile / Fasilitas)
   const addBiomassPartner = (p: Omit<BiomassPartner, 'id' | 'createdAt'>) => {
+    if (!guardBiomass()) return;
     const id = 'prt-' + Date.now().toString().slice(-6);
     const newPartner: BiomassPartner = {
       ...p,
@@ -757,6 +825,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateBiomassPartner = (id: string, data: Partial<BiomassPartner>) => {
+    if (!guardBiomass()) return;
     const oldP = biomassPartners.find((p) => p.id === id);
     setBiomassPartners((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
     if (data.name && oldP && data.name !== oldP.name) {
@@ -768,6 +837,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteBiomassPartner = (id: string) => {
+    if (!guardBiomass()) return;
     const target = biomassPartners.find((p) => p.id === id);
     setBiomassPartners((prev) => prev.filter((p) => p.id !== id));
     addToast('info', 'Kelompok Mitra Dihapus', `"${target?.name || ''}" telah dihapus.`);
@@ -775,6 +845,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Biomass Types CRUD (Jenis Biomassa)
   const addBiomassType = (t: Omit<BiomassTypeMaster, 'id'>) => {
+    if (!guardBiomass()) return;
     const id = 'bt-' + Date.now().toString().slice(-6);
     const newType: BiomassTypeMaster = {
       ...t,
@@ -785,6 +856,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateBiomassType = (id: string, data: Partial<BiomassTypeMaster>) => {
+    if (!guardBiomass()) return;
     const oldT = biomassTypes.find((t) => t.id === id);
     setBiomassTypes((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
     if (data.name && oldT && data.name !== oldT.name) {
@@ -796,6 +868,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteBiomassType = (id: string) => {
+    if (!guardBiomass()) return;
     const target = biomassTypes.find((t) => t.id === id);
     setBiomassTypes((prev) => prev.filter((t) => t.id !== id));
     addToast('info', 'Jenis Biomassa Dihapus', `Jenis biomassa "${target?.name || ''}" telah dihapus.`);
@@ -803,6 +876,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Sale CRUD
   const addSale = (s: Omit<Sale, 'id' | 'createdAt' | 'total'>) => {
+    if (!guardProgram(s.program_id)) return;
     const count = sales.length + 1;
     const now = new Date();
     const prefix = `PJL-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(count).padStart(3, '0')}`;
@@ -819,6 +893,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateSale = (id: string, data: Partial<Sale>) => {
+    const old = sales.find((x) => x.id === id);
+    if (!old || !guardProgram(old.program_id)) return;
+    if (data.program_id && !guardProgram(data.program_id)) return;
     setSales((prev) =>
       prev.map((s) => {
         if (s.id !== id) return s;
@@ -833,12 +910,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteSale = (id: string) => {
+    const old = sales.find((x) => x.id === id);
+    if (!old || !guardProgram(old.program_id)) return;
     setSales((prev) => prev.filter((s) => s.id !== id));
     addToast('info', 'Penjualan Dihapus', 'Data penjualan telah dihapus dari sistem.');
   };
 
   // Utilization CRUD
   const addUtilization = (u: Omit<Utilization, 'id' | 'createdAt'>) => {
+    if (!guardProgram(u.program_id)) return;
     const count = utilizations.length + 1;
     const now = new Date();
     const prefix = `PMF-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(count).padStart(3, '0')}`;
@@ -853,105 +933,132 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateUtilization = (id: string, data: Partial<Utilization>) => {
+    const old = utilizations.find((x) => x.id === id);
+    if (!old || !guardProgram(old.program_id)) return;
+    if (data.program_id && !guardProgram(data.program_id)) return;
     setUtilizations((prev) => prev.map((u) => (u.id === id ? { ...u, ...data } : u)));
     addToast('success', 'Pemanfaatan Diperbarui', 'Data pemanfaatan berhasil diperbarui.');
   };
 
   const deleteUtilization = (id: string) => {
+    const old = utilizations.find((x) => x.id === id);
+    if (!old || !guardProgram(old.program_id)) return;
     setUtilizations((prev) => prev.filter((u) => u.id !== id));
     addToast('info', 'Pemanfaatan Dihapus', 'Data pemanfaatan telah dihapus.');
   };
 
-  // Master RW / RT
+  // Master RW / RT (khusus Super Admin)
   const addRW = (rw: Omit<RW, 'id'>) => {
+    if (!guardSuper()) return;
     const id = 'rw-' + rw.number.padStart(2, '0');
     setRws((prev) => [...prev, { ...rw, id }]);
     addToast('success', 'RW Ditambahkan', `RW ${rw.number} berhasil didaftarkan.`);
   };
 
   const updateRW = (id: string, data: Partial<RW>) => {
+    if (!guardSuper()) return;
     setRws((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     addToast('success', 'RW Diperbarui', 'Data RW berhasil diubah.');
   };
 
   const deleteRW = (id: string) => {
+    if (!guardSuper()) return;
     setRws((prev) => prev.filter((r) => r.id !== id));
     addToast('info', 'RW Dihapus', 'RW berhasil dihapus.');
   };
 
   const addRT = (rt: Omit<RT, 'id'>) => {
+    if (!guardSuper()) return;
     const id = `rt-${rt.rw_id}-${rt.number.padStart(2, '0')}-${Date.now().toString().slice(-3)}`;
     setRts((prev) => [...prev, { ...rt, id }]);
     addToast('success', 'RT Ditambahkan', `RT ${rt.number} berhasil didaftarkan.`);
   };
 
   const updateRT = (id: string, data: Partial<RT>) => {
+    if (!guardSuper()) return;
     setRts((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     addToast('success', 'RT Diperbarui', 'Data RT berhasil diubah.');
   };
 
   const deleteRT = (id: string) => {
+    if (!guardSuper()) return;
     setRts((prev) => prev.filter((r) => r.id !== id));
     addToast('info', 'RT Dihapus', 'RT berhasil dihapus.');
   };
 
-  // Items & Types (CRUD)
+  // Items & Types (khusus Super Admin)
   const addItemType = (item: Omit<ItemTypeMaster, 'id'>) => {
+    if (!guardSuper()) return;
     const id = 'item-' + Date.now();
     setItemTypes((prev) => [...prev, { ...item, id }]);
     addToast('success', 'Jenis Barang Ditambahkan', item.name);
   };
 
   const updateItemType = (id: string, data: Partial<ItemTypeMaster>) => {
+    if (!guardSuper()) return;
     setItemTypes((prev) => prev.map((i) => (i.id === id ? { ...i, ...data } : i)));
     addToast('success', 'Jenis Barang Diperbarui', 'Data komoditas barang berhasil disimpan.');
   };
 
   const deleteItemType = (id: string) => {
+    if (!guardSuper()) return;
     const target = itemTypes.find((i) => i.id === id);
     setItemTypes((prev) => prev.filter((i) => i.id !== id));
     addToast('info', 'Jenis Barang Dihapus', `Komoditas "${target?.name || ''}" berhasil dihapus.`);
   };
 
+  // Kategori pemanfaatan boleh ditambah staff program saat mencatat pemanfaatan;
+  // ubah dan hapus tetap khusus Super Admin.
   const addUtilizationType = (type: Omit<UtilizationTypeMaster, 'id'>) => {
+    if (!isSuperAdmin && !isStaff) {
+      denyToast('Akun Anda hanya dapat melihat data.');
+      return;
+    }
     const id = 'ut-' + Date.now();
     setUtilizationTypes((prev) => [...prev, { ...type, id }]);
     addToast('success', 'Jenis Pemanfaatan Ditambahkan', type.name);
   };
 
   const updateUtilizationType = (id: string, data: Partial<UtilizationTypeMaster>) => {
+    if (!guardSuper()) return;
     setUtilizationTypes((prev) => prev.map((u) => (u.id === id ? { ...u, ...data } : u)));
     addToast('success', 'Jenis Pemanfaatan Diperbarui', 'Data jenis pemanfaatan berhasil disimpan.');
   };
 
   const deleteUtilizationType = (id: string) => {
+    if (!guardSuper()) return;
     const target = utilizationTypes.find((u) => u.id === id);
     setUtilizationTypes((prev) => prev.filter((t) => t.id !== id));
     addToast('info', 'Jenis Pemanfaatan Dihapus', `Jenis pemanfaatan "${target?.name || ''}" berhasil dihapus.`);
   };
 
-  // Front Page Content Updaters
+  // Front Page Content Updaters (khusus Super Admin)
   const updateHeroContent = (hero: Partial<FrontPageHero>) => {
+    if (!guardSuper()) return;
     setFrontPageContent((prev) => ({ ...prev, hero: { ...prev.hero, ...hero } }));
     addToast('success', 'Hero Diperbarui', 'Konten banner utama berhasil disimpan.');
   };
 
   const updateStatsConfig = (stats: StatItemConfig[]) => {
+    if (!guardSuper()) return;
     setFrontPageContent((prev) => ({ ...prev, stats }));
     addToast('success', 'Statistik Diperbarui', 'Pengaturan statistik berhasil disimpan.');
   };
 
   const updateAboutContent = (about: Partial<FrontPageAbout>) => {
+    if (!guardSuper()) return;
     setFrontPageContent((prev) => ({ ...prev, about: { ...prev.about, ...about } }));
     addToast('success', 'Tentang Diperbarui', 'Informasi Tentang KANG DIKIN berhasil disimpan.');
   };
 
   const updateCtaContent = (cta: Partial<FrontPageCTA>) => {
+    if (!guardSuper()) return;
     setFrontPageContent((prev) => ({ ...prev, cta: { ...prev.cta, ...cta } }));
     addToast('success', 'Ajakan (CTA) Diperbarui', 'Konten ajakan warga berhasil disimpan.');
   };
 
   const resetFrontPageContent = () => {
+    if (!guardSuper()) return;
     setFrontPageContent(INITIAL_FRONT_PAGE_CONTENT);
     addToast('info', 'Konten Direset', 'Konten halaman depan kembali ke pengaturan bawaan.');
   };
@@ -1005,7 +1112,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return true;
     });
-  }, [deposits, filters, isAdmin, activePublicProgramIds, rws, programs]);
+  }, [deposits, filters, isAdmin, isStaff, userProgramId, activePublicProgramIds, rws, programs]);
 
   const filteredSales = useMemo(() => {
     return sales.filter((s) => {
@@ -1115,10 +1222,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const totalWeightKg = rwDeps.reduce((acc, c) => acc + (Number(c.weight) || 0), 0);
       const totalDepositsCount = rwDeps.length;
 
-      // Note: Sales are program-wide or per-item, but we can compute approximate or direct allocation.
-      // If RW contributed weight proportionally to total weight, we can allocate sales, or check if direct RW sales exist.
-      // To satisfy section 9 table:
-      // | RW | Total Setoran | Total Berat | Total Penjualan | Total Pemanfaatan |
       const totalWeightAll = deposits
         .filter((d) => filters.programId === 'all' || d.program_id === filters.programId)
         .reduce((acc, c) => acc + (Number(c.weight) || 0), 0);
@@ -1172,9 +1275,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAdmin,
         isSuperAdmin,
         isStaff,
+        isViewer,
         userProgramId,
         userProgramName,
         canAccessProgram,
+        canEditProgram,
+        canEditBiomass,
         hydrated,
         login,
         logout,
