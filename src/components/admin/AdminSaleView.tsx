@@ -4,31 +4,29 @@ import { Sale } from '../../types';
 import { ConfirmDeleteModal } from '../modals/ConfirmDeleteModal';
 import { Pagination } from '../common/Pagination';
 import { formatRupiah } from '../../utils/dateUtils';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 
 interface AdminSaleViewProps {
+  programScope?: string;
   onAddSale: () => void;
   onEditSale: (sale: Sale) => void;
 }
 
 export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
+  programScope,
   onAddSale,
   onEditSale,
 }) => {
-  const {
-    sales,
-    programs,
-    itemTypes,
-    deleteSale,
-    getProgramName,
-    isStaff,
-    isViewer,
-    canEditProgram,
-    userProgramId,
-  } = useApp();
+  const { sales, programs, itemTypes, deleteSale, getProgramName, isStaff, userProgramId, userProgramName } = useApp();
   const [filterProgram, setFilterProgram] = useState<string>(
-    isStaff && userProgramId ? userProgramId : 'all'
+    isStaff && userProgramId ? userProgramId : (programScope || 'all')
   );
+
+  useEffect(() => {
+    if (programScope && !isStaff) {
+      setFilterProgram(programScope);
+    }
+  }, [programScope, isStaff]);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
@@ -97,19 +95,16 @@ export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
           <h1 className="text-2xl font-bold text-stone-900 font-serif">Data Penjualan</h1>
           <p className="text-sm text-stone-500 mt-0.5">
             Pencatatan penjualan komoditas daur ulang dan hasil panen agroforestri
-            {isViewer && ' (mode hanya lihat)'}
           </p>
         </div>
 
-        {!isViewer && (
-          <button
-            onClick={onAddSale}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Penjualan</span>
-          </button>
-        )}
+        <button
+          onClick={onAddSale}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Tambah Penjualan</span>
+        </button>
       </div>
 
       {/* Filter and Summary */}
@@ -196,7 +191,7 @@ export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setFilterProgram(isStaff && userProgramId ? userProgramId : 'all');
+                    setFilterProgram('all');
                     setFilterCategory('all');
                     setSearch('');
                   }}
@@ -241,7 +236,6 @@ export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
               {paginated.map((item, index) => {
                 // Auto calculated: Berat x Harga
                 const autoAmount = Math.round(item.weight * item.price);
-                const canEdit = canEditProgram(item.program_id);
                 return (
                   <tr key={item.id} className="hover:bg-stone-50/70 transition-colors">
                     <td className="py-3 px-4 text-center text-xs text-stone-400 font-medium">
@@ -275,31 +269,27 @@ export const AdminSaleView: React.FC<AdminSaleViewProps> = ({
                       {formatRupiah(item.total || autoAmount)}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {canEdit ? (
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            onClick={() => onEditSale(item)}
-                            className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 border border-emerald-300 rounded-md transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeletingSale(item)}
-                            className="px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 rounded-md transition-colors"
-                          >
-                            Hapus
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-stone-400 italic">Hanya lihat</span>
-                      )}
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          onClick={() => onEditSale(item)}
+                          className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 border border-emerald-300 rounded-md transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeletingSale(item)}
+                          className="px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 rounded-md transition-colors"
+                        >
+                          Hapus
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-xs text-stone-400">
+                  <td colSpan={8} className="py-12 text-center text-xs text-stone-400">
                     Tidak ada transaksi penjualan yang tercatat.
                   </td>
                 </tr>

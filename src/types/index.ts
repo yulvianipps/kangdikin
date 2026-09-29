@@ -194,6 +194,7 @@ export interface BiomassEntry {
   group_category: string;      // nama kelompok/stokpile (misal: "Stokpile Indramayu", "Fasprod Ciamis")
   biomass_type?: string;       // jenis biomassa (misal: "Aren", "Kayu Sengon", "Sekam Padi")
   vehicle_plate: string;       // no pol truk (misal: Z 9415 TA)
+  license_plate?: string;      // alias kompatibilitas
   driver_name: string;         // nama sopir
   arrival_time: string;        // jam tiba (HH:mm)
   departure_time: string;      // jam berangkat (HH:mm)

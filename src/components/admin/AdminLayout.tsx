@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard,
-  FolderKanban,
+  Truck,
   ArrowDownLeft,
   ArrowUpRight,
   HeartHandshake,
@@ -15,14 +15,17 @@ import {
   Users,
   Calendar,
   Download,
-  User,
   Settings,
+  FolderKanban,
+  User,
   LogOut,
   ExternalLink,
   Menu,
   X,
   Leaf,
-  Truck,
+  ShieldCheck,
+  TreePine,
+  Recycle,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -38,126 +41,334 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   onSwitchToPublic,
   children,
 }) => {
-  const { user, isSuperAdmin, isStaff, isViewer, userProgramName, logout } = useApp();
+  const { user, isSuperAdmin, isStaff, userProgramName, logout } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isArenStaff = isStaff && user?.assignedProgramId === 'prog-aren';
+  const isKayuStaff = isStaff && user?.assignedProgramId === 'prog-kayu';
   const isBankSampahStaff = isStaff && user?.assignedProgramId === 'prog-bank-sampah';
+  const isKomposStaff = isStaff && user?.assignedProgramId === 'prog-kompos-maggot';
 
-  // Define structured sidebar navigation
-  const navSections = [
-    {
-      title: null,
-      items: [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      ],
-    },
-    {
-      title: isArenStaff ? 'DATA SENTRA AREN' : isBankSampahStaff ? 'DATA BANK SAMPAH' : 'DATA',
-      items: [
-        ...(!isBankSampahStaff
-          ? [
-              {
-                id: 'biomassa',
-                label: isArenStaff ? 'Biomassa & Timbangan Aren' : 'Daftar Biomassa',
-                icon: Truck,
-              },
-            ]
-          : []),
+  // Build role-isolated navigation sections
+  const getNavSections = () => {
+    // 1. PETUGAS AREN (HANYA BISA LIHAT & KELOLA AREN)
+    if (isArenStaff) {
+      return [
         {
-          id: 'setoran',
-          label: isArenStaff
-            ? 'Setoran Bahan Aren'
-            : isBankSampahStaff
-            ? 'Setoran Bank Sampah'
-            : 'Setoran Material',
-          icon: ArrowDownLeft,
+          title: null,
+          items: [
+            { id: 'dashboard', label: 'Dashboard Aren', icon: LayoutDashboard },
+          ],
         },
         {
-          id: 'penjualan',
-          label: isArenStaff
-            ? 'Penjualan Produk Aren'
-            : isBankSampahStaff
-            ? 'Penjualan Daur Ulang'
-            : 'Penjualan Komoditas',
-          icon: ArrowUpRight,
+          title: '🌾 DATA SENTRA AREN',
+          items: [
+            {
+              id: 'biomassa-aren',
+              label: 'Biomassa & Timbangan Aren',
+              icon: Truck,
+            },
+            {
+              id: 'setoran-aren',
+              label: 'Setoran Bahan Aren',
+              icon: ArrowDownLeft,
+            },
+            {
+              id: 'penjualan-aren',
+              label: 'Penjualan Produk Aren',
+              icon: ArrowUpRight,
+            },
+            {
+              id: 'pemanfaatan-aren',
+              label: 'Pemanfaatan Dana Aren',
+              icon: HeartHandshake,
+            },
+          ],
         },
         {
-          id: 'pemanfaatan',
-          label: isArenStaff
-            ? 'Pemanfaatan Dana Aren'
-            : isBankSampahStaff
-            ? 'Pemanfaatan Bank Sampah'
-            : 'Pemanfaatan Dana',
-          icon: HeartHandshake,
+          title: '📊 LAPORAN KHUSUS AREN',
+          items: [
+            { id: 'rekap-periode', label: 'Rekap Periode Aren', icon: Calendar },
+            { id: 'export', label: 'Export Data Aren', icon: Download },
+          ],
         },
-        ...(isSuperAdmin
-          ? [{ id: 'program', label: 'Master Program', icon: FolderKanban }]
-          : []),
-      ],
-    },
-    {
-      title: 'WILAYAH',
-      items: [
-        { id: 'rw', label: 'RW', icon: MapPin },
-        { id: 'rt', label: 'RT', icon: Building },
-      ],
-    },
-    {
-      title: 'WEBSITE',
-      items: [
-        { id: 'website-frontpage', label: 'Halaman Depan', icon: Globe },
-        { id: 'website-program', label: 'Konten Program', icon: FileText },
-        { id: 'website-about', label: 'Tentang', icon: HelpCircle },
-      ],
-    },
-    {
-      title: 'LAPORAN',
-      items: [
-        { id: 'laporan', label: 'Laporan Keuangan', icon: BarChart3 },
-        { id: 'rekap-rw', label: 'Rekap RW', icon: Users },
-        { id: 'rekap-periode', label: 'Rekap Periode', icon: Calendar },
-        { id: 'export', label: 'Export', icon: Download },
-      ],
-    },
-    {
-      title: 'SISTEM',
-      items: [
-        { id: 'pengguna', label: 'Pengguna', icon: User },
-        { id: 'pengaturan', label: 'Pengaturan', icon: Settings },
-      ],
-    },
-  ];
-
-  // Staff & viewer: menu WEBSITE dan SISTEM disembunyikan
-  const visibleNavSections = navSections.filter((section) => {
-    if ((isStaff || isViewer) && (section.title === 'WEBSITE' || section.title === 'SISTEM')) {
-      return false;
+      ];
     }
-    return true;
-  });
+
+    // 2. PETUGAS KAYU (HANYA BISA LIHAT & KELOLA KAYU)
+    if (isKayuStaff) {
+      return [
+        {
+          title: null,
+          items: [
+            { id: 'dashboard', label: 'Dashboard Kayu', icon: LayoutDashboard },
+          ],
+        },
+        {
+          title: '🪵 KEHUTANAN & KAYU RAKYAT',
+          items: [
+            {
+              id: 'biomassa-kayu',
+              label: 'Logistik & Timbang Kayu',
+              icon: Truck,
+            },
+            {
+              id: 'setoran-kayu',
+              label: 'Setoran Kayu Rakyat',
+              icon: ArrowDownLeft,
+            },
+            {
+              id: 'penjualan-kayu',
+              label: 'Penjualan Komoditas Kayu',
+              icon: ArrowUpRight,
+            },
+            {
+              id: 'pemanfaatan-kayu',
+              label: 'Pemanfaatan Dana Kayu',
+              icon: HeartHandshake,
+            },
+          ],
+        },
+        {
+          title: '📊 LAPORAN KHUSUS KAYU',
+          items: [
+            { id: 'rekap-periode', label: 'Rekap Periode Kayu', icon: Calendar },
+            { id: 'export', label: 'Export Data Kayu', icon: Download },
+          ],
+        },
+      ];
+    }
+
+    // 3. PETUGAS BANK SAMPAH (HANYA BISA LIHAT & KELOLA BANK SAMPAH)
+    if (isBankSampahStaff) {
+      return [
+        {
+          title: null,
+          items: [
+            { id: 'dashboard', label: 'Dashboard Bank Sampah', icon: LayoutDashboard },
+          ],
+        },
+        {
+          title: '♻️ DATA BANK SAMPAH',
+          items: [
+            {
+              id: 'setoran-sampah',
+              label: 'Setoran Tabungan Sampah RW',
+              icon: ArrowDownLeft,
+            },
+            {
+              id: 'penjualan-sampah',
+              label: 'Penjualan Sampah Daur Ulang',
+              icon: ArrowUpRight,
+            },
+            {
+              id: 'pemanfaatan-sampah',
+              label: 'Pemanfaatan Bank Sampah',
+              icon: HeartHandshake,
+            },
+          ],
+        },
+        {
+          title: '🗺️ WILAYAH & REKAP',
+          items: [
+            { id: 'rw', label: 'Wilayah RW', icon: MapPin },
+            { id: 'rt', label: 'Wilayah RT', icon: Building },
+            { id: 'rekap-rw', label: 'Rekapitulasi Sampah RW', icon: Users },
+            { id: 'rekap-periode', label: 'Rekap Periode', icon: Calendar },
+            { id: 'export', label: 'Export Bank Sampah', icon: Download },
+          ],
+        },
+      ];
+    }
+
+    // 4. PETUGAS KOMPOS & MAGGOT
+    if (isKomposStaff) {
+      return [
+        {
+          title: null,
+          items: [
+            { id: 'dashboard', label: 'Dashboard Kompos', icon: LayoutDashboard },
+          ],
+        },
+        {
+          title: '🪱 KOMPOS & MAGGOT BSF',
+          items: [
+            { id: 'setoran', label: 'Setoran Sampah Dapur', icon: ArrowDownLeft },
+            { id: 'penjualan', label: 'Penjualan Maggot & Kompos', icon: ArrowUpRight },
+            { id: 'pemanfaatan', label: 'Pemanfaatan Dana', icon: HeartHandshake },
+            { id: 'rekap-periode', label: 'Rekap Periode', icon: Calendar },
+            { id: 'export', label: 'Export Data', icon: Download },
+          ],
+        },
+      ];
+    }
+
+    // 5. SUPER ADMIN: PEMISAHAN BAGIAN TERSTRUKTUR & JELAS
+    return [
+      {
+        title: null,
+        items: [
+          { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard },
+        ],
+      },
+      {
+        title: '🌾 PROGRAM SENTRA AREN',
+        items: [
+          {
+            id: 'biomassa-aren',
+            label: 'Biomassa & Timbangan Aren',
+            icon: Truck,
+          },
+          {
+            id: 'setoran-aren',
+            label: 'Setoran Bahan Aren',
+            icon: ArrowDownLeft,
+          },
+          {
+            id: 'penjualan-aren',
+            label: 'Penjualan Produk Aren',
+            icon: ArrowUpRight,
+          },
+          {
+            id: 'pemanfaatan-aren',
+            label: 'Pemanfaatan Dana Aren',
+            icon: HeartHandshake,
+          },
+        ],
+      },
+      {
+        title: '🪵 KEHUTANAN & KAYU RAKYAT',
+        items: [
+          {
+            id: 'biomassa-kayu',
+            label: 'Logistik & Timbang Kayu',
+            icon: Truck,
+          },
+          {
+            id: 'setoran-kayu',
+            label: 'Setoran Kayu Rakyat',
+            icon: ArrowDownLeft,
+          },
+          {
+            id: 'penjualan-kayu',
+            label: 'Penjualan Komoditas Kayu',
+            icon: ArrowUpRight,
+          },
+          {
+            id: 'pemanfaatan-kayu',
+            label: 'Pemanfaatan Dana Kayu',
+            icon: HeartHandshake,
+          },
+        ],
+      },
+      {
+        title: '♻️ PROGRAM BANK SAMPAH',
+        items: [
+          {
+            id: 'setoran-sampah',
+            label: 'Setoran Sampah RW',
+            icon: ArrowDownLeft,
+          },
+          {
+            id: 'penjualan-sampah',
+            label: 'Penjualan Sampah Daur Ulang',
+            icon: ArrowUpRight,
+          },
+          {
+            id: 'pemanfaatan-sampah',
+            label: 'Pemanfaatan Bank Sampah',
+            icon: HeartHandshake,
+          },
+        ],
+      },
+      {
+        title: '🗺️ WILAYAH WARGA',
+        items: [
+          { id: 'rw', label: 'Data RW', icon: MapPin },
+          { id: 'rt', label: 'Data RT', icon: Building },
+        ],
+      },
+      {
+        title: '📊 KEUANGAN & LAPORAN',
+        items: [
+          { id: 'laporan', label: 'Laporan Kas & Keuangan', icon: BarChart3 },
+          { id: 'rekap-rw', label: 'Rekapitulasi RW', icon: Users },
+          { id: 'rekap-periode', label: 'Rekap Periode', icon: Calendar },
+          { id: 'export', label: 'Pusat Unduh Data (Export)', icon: Download },
+        ],
+      },
+      {
+        title: '⚙️ SISTEM & MASTER',
+        items: [
+          { id: 'program', label: 'Master Program Desa', icon: FolderKanban },
+          { id: 'website-frontpage', label: 'Halaman Depan Web', icon: Globe },
+          { id: 'website-program', label: 'Konten Program Web', icon: FileText },
+          { id: 'pengguna', label: 'Manajemen Pengguna', icon: User },
+          { id: 'pengaturan', label: 'Pengaturan Sistem', icon: Settings },
+        ],
+      },
+    ];
+  };
+
+  const navSections = getNavSections();
 
   // Helper for current page title
   const getPageTitle = (menuId: string): string => {
     switch (menuId) {
       case 'dashboard':
-        return 'Dashboard Utama';
+        return isArenStaff
+          ? 'Dashboard Sentra Aren'
+          : isKayuStaff
+          ? 'Dashboard Kehutanan Kayu'
+          : isBankSampahStaff
+          ? 'Dashboard Bank Sampah'
+          : 'Dashboard Utama KANG DIKIN';
       case 'biomassa':
-        return 'DAFTAR BIOMASSA (Timbang & Logistik)';
+      case 'biomassa-aren':
+        return 'DAFTAR BIOMASSA SENTRA AREN (Timbangan & Logistik)';
+      case 'biomassa-kayu':
+        return 'LOGISTIK & TIMBANGAN KAYU RAKYAT (Kehutanan Lestari)';
       case 'program':
-        return 'Data Program';
+        return 'Data Program Desa';
+      case 'setoran-aren':
+        return 'Data Setoran Bahan Aren';
+      case 'setoran-kayu':
+        return 'Data Setoran Kayu Rakyat';
+      case 'setoran-sampah':
       case 'setoran':
-        return 'Data Setoran Material';
+        return isArenStaff
+          ? 'Data Setoran Bahan Aren'
+          : isKayuStaff
+          ? 'Data Setoran Kayu Rakyat'
+          : 'Data Setoran Tabungan Bank Sampah';
+      case 'penjualan-aren':
+        return 'Data Penjualan Produk Aren (Gula Semut & Turunan)';
+      case 'penjualan-kayu':
+        return 'Data Penjualan Komoditas Kayu Rakyat';
+      case 'penjualan-sampah':
       case 'penjualan':
-        return 'Data Penjualan Komoditas';
+        return isArenStaff
+          ? 'Data Penjualan Produk Aren'
+          : isKayuStaff
+          ? 'Data Penjualan Komoditas Kayu'
+          : 'Data Penjualan Sampah Daur Ulang';
+      case 'pemanfaatan-aren':
+        return 'Data Pemanfaatan Dana Sentra Aren';
+      case 'pemanfaatan-kayu':
+        return 'Data Pemanfaatan Dana Kehutanan Kayu';
+      case 'pemanfaatan-sampah':
       case 'pemanfaatan':
-        return 'Data Pemanfaatan Dana';
+        return isArenStaff
+          ? 'Data Pemanfaatan Dana Sentra Aren'
+          : isKayuStaff
+          ? 'Data Pemanfaatan Dana Kehutanan Kayu'
+          : 'Data Pemanfaatan Dana Bank Sampah';
       case 'rw':
         return 'Data Wilayah RW';
       case 'rt':
         return 'Data Wilayah RT';
       case 'website-frontpage':
-        return 'Pengaturan Halaman Depan';
+        return 'Pengaturan Halaman Depan Web';
       case 'website-program':
         return 'Pengaturan Konten Program';
       case 'website-about':
@@ -171,7 +382,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       case 'export':
         return 'Pusat Unduh Data (Export)';
       case 'pengguna':
-        return 'Manajemen Pengguna';
+        return 'Manajemen Pengguna & Hak Akses';
       case 'pengaturan':
         return 'Pengaturan Sistem';
       default:
@@ -195,7 +406,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           <div>
             <div className="font-bold text-sm tracking-tight">KANG DIKIN</div>
             <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-              ADMIN PANEL
+              {isArenStaff ? 'SENTRA AREN' : isKayuStaff ? 'KEHUTANAN KAYU' : isBankSampahStaff ? 'BANK SAMPAH' : 'ADMIN PANEL'}
             </div>
           </div>
         </div>
@@ -226,15 +437,37 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           {/* Sidebar Header Brand */}
           <div className="p-6 border-b border-stone-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center text-white shrink-0 shadow-xs">
-                <Leaf className="w-5 h-5 text-emerald-200" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs ${
+                isArenStaff
+                  ? 'bg-emerald-800 text-emerald-200'
+                  : isKayuStaff
+                  ? 'bg-amber-800 text-amber-200'
+                  : isBankSampahStaff
+                  ? 'bg-teal-800 text-teal-200'
+                  : 'bg-emerald-800 text-emerald-200'
+              }`}>
+                {isKayuStaff ? <TreePine className="w-5 h-5" /> : isBankSampahStaff ? <Recycle className="w-5 h-5" /> : <Leaf className="w-5 h-5" />}
               </div>
               <div>
                 <span className="font-bold text-base tracking-tight text-white block">
                   KANG DIKIN
                 </span>
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
-                  ADMIN PANEL
+                <span className={`text-[10px] font-extrabold uppercase tracking-wider block ${
+                  isArenStaff
+                    ? 'text-emerald-400'
+                    : isKayuStaff
+                    ? 'text-amber-400'
+                    : isBankSampahStaff
+                    ? 'text-teal-400'
+                    : 'text-emerald-400'
+                }`}>
+                  {isArenStaff
+                    ? 'SENTRA AREN'
+                    : isKayuStaff
+                    ? 'KEHUTANAN KAYU'
+                    : isBankSampahStaff
+                    ? 'BANK SAMPAH'
+                    : 'ADMIN PANEL'}
                 </span>
               </div>
             </div>
@@ -249,7 +482,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
           {/* Nav Items Scrollable */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 no-scrollbar">
-            {visibleNavSections.map((section, sIdx) => (
+            {navSections.map((section, sIdx) => (
               <div key={sIdx}>
                 {section.title && (
                   <div className="px-3 mb-1.5 text-[10px] font-bold tracking-wider text-stone-400 uppercase">
@@ -264,9 +497,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                       <button
                         key={item.id}
                         onClick={() => handleMenuClick(item.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                           isActive
-                            ? 'bg-emerald-800 text-white shadow-xs'
+                            ? 'bg-emerald-800 text-white shadow-xs font-bold'
                             : 'text-stone-300 hover:bg-stone-900 hover:text-white'
                         }`}
                       >
@@ -283,10 +516,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <div className="pt-2 border-t border-stone-800">
               <button
                 onClick={logout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors"
               >
                 <LogOut className="w-4 h-4 text-rose-400" />
-                <span>Logout</span>
+                <span>Logout Keluar</span>
               </button>
             </div>
           </div>
@@ -295,14 +528,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           <div className="p-4 border-t border-stone-800 bg-stone-900/60 space-y-2">
             <button
               onClick={onSwitchToPublic}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-stone-800 hover:bg-stone-700 text-stone-200 transition-colors border border-stone-700 shadow-xs"
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-stone-800 hover:bg-stone-700 text-stone-200 transition-colors border border-stone-700 shadow-xs"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>Lihat Website Public</span>
             </button>
 
-            <div className="flex items-center gap-2.5 px-2 py-1.5">
-              <div className="w-7 h-7 rounded-full bg-emerald-900 flex items-center justify-center text-xs font-bold text-emerald-300">
+            <div className="flex items-center gap-2.5 px-2 py-1.5 bg-stone-950/40 rounded-xl border border-stone-800/80">
+              <div className="w-7 h-7 rounded-full bg-emerald-900 flex items-center justify-center text-xs font-bold text-emerald-300 shrink-0">
                 {user?.name ? user.name[0].toUpperCase() : 'A'}
               </div>
               <div className="flex-1 truncate">
@@ -323,20 +556,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         {/* Clean Admin Topbar */}
         <header className="hidden lg:flex bg-white border-b border-stone-200 h-16 items-center justify-between px-8 shadow-xs">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-stone-900">
+            <h2 className="text-base md:text-lg font-bold text-stone-900">
               {getPageTitle(currentMenu)}
             </h2>
-            {isViewer ? (
-              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-stone-100 text-stone-700 border border-stone-300">
-                👁️ Hanya Lihat (Tanpa Ubah Data)
-              </span>
-            ) : isStaff ? (
-              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-900 border border-amber-300">
-                🔒 Data Khusus: {userProgramName || 'Program'}
+            {isStaff ? (
+              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                <span>Hak Akses Khusus: {userProgramName || 'Program'}</span>
               </span>
             ) : (
               <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300">
-                👑 Super Admin (Akses Penuh)
+                👑 Super Admin (Akses Penuh Seluruh Bagian)
               </span>
             )}
           </div>
@@ -363,7 +593,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               </div>
               <button
                 onClick={logout}
-                className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200"
+                className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200"
               >
                 Logout
               </button>

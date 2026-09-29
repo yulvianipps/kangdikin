@@ -44,7 +44,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               </h3>
               <p className="text-[11px] text-stone-400 font-mono">
                 {item.type === 'biomass'
-                  ? `Plat: ${item.data.license_plate} • ${item.data.biomass_type || 'Aren'}`
+                  ? `Plat: ${item.data.vehicle_plate || item.data.license_plate || '-'} • ${item.data.biomass_type || 'Aren'}`
                   : item.data.transaction_no}
               </p>
             </div>
@@ -242,7 +242,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 <div className="flex justify-between items-center pb-2.5 border-b border-stone-200/80">
                   <span className="text-stone-500 font-medium">Plat Nomor Truk:</span>
                   <span className="font-mono font-bold text-stone-900 text-sm bg-stone-200/80 px-2 py-0.5 rounded">
-                    {item.data.license_plate}
+                    {item.data.vehicle_plate || item.data.license_plate || '-'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">

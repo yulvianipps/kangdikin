@@ -8,11 +8,13 @@ import { Pagination } from '../common/Pagination';
 import { Plus, Search, Filter, Printer, Eye } from 'lucide-react';
 
 interface AdminDepositViewProps {
+  programScope?: string;
   onAddDeposit: () => void;
   onEditDeposit: (deposit: Deposit) => void;
 }
 
 export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
+  programScope,
   onAddDeposit,
   onEditDeposit,
 }) => {
@@ -26,15 +28,20 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
     getRWName,
     getRTName,
     isStaff,
-    isViewer,
-    canEditProgram,
+    isSuperAdmin,
     userProgramId,
     userProgramName,
   } = useApp();
 
   const [filterProgram, setFilterProgram] = useState<string>(
-    isStaff && userProgramId ? userProgramId : 'all'
+    isStaff && userProgramId ? userProgramId : (programScope || 'all')
   );
+
+  useEffect(() => {
+    if (programScope && !isStaff) {
+      setFilterProgram(programScope);
+    }
+  }, [programScope, isStaff]);
   const [filterRW, setFilterRW] = useState<string>('all');
   const [filterRT, setFilterRT] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
@@ -106,19 +113,16 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
           <h1 className="text-2xl font-bold text-stone-900 font-serif">Data Setoran</h1>
           <p className="text-sm text-stone-500 mt-0.5">
             Pencatatan setoran material dari warga RT dan RW
-            {isViewer && ' (mode hanya lihat)'}
           </p>
         </div>
 
-        {!isViewer && (
-          <button
-            onClick={onAddDeposit}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Setoran</span>
-          </button>
-        )}
+        <button
+          onClick={onAddDeposit}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Tambah Setoran</span>
+        </button>
       </div>
 
       {/* Filter Bar */}
@@ -249,7 +253,7 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
           {(filterProgram !== 'all' || filterRW !== 'all' || filterRT !== 'all' || filterDate || search) && (
             <button
               onClick={() => {
-                setFilterProgram(isStaff && userProgramId ? userProgramId : 'all');
+                setFilterProgram('all');
                 setFilterRW('all');
                 setFilterRT('all');
                 setFilterDate('');
@@ -280,82 +284,67 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200">
-              {paginated.map((item, index) => {
-                const canEdit = canEditProgram(item.program_id);
-                return (
-                  <tr key={item.id} className="hover:bg-stone-50/70 transition-colors">
-                    <td className="py-3 px-4 text-center text-xs text-stone-400 font-medium">
-                      {(currentPage - 1) * pageSize + index + 1}
-                    </td>
-                    <td className="py-3 px-4 text-xs font-medium text-stone-700 whitespace-nowrap">
-                      {item.date}
-                      <span className="block text-[11px] text-stone-400 font-normal">{item.day}</span>
-                    </td>
-                    <td className="py-3 px-4 text-xs font-mono font-semibold text-emerald-800 whitespace-nowrap">
-                      {item.transaction_no}
-                    </td>
-                    <td className="py-3 px-4 text-xs">
-                      <div className="font-semibold text-stone-900">
-                        {item.citizen_name || <span className="text-stone-400 font-normal italic">Warga Setempat</span>}
-                      </div>
-                      {item.notes && (
-                        <span className="block text-[11px] text-stone-500 line-clamp-1" title={item.notes}>
-                          {item.notes}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-stone-900">
-                      {getProgramName(item.program_id)}
-                    </td>
-                    <td className="py-3 px-4 text-xs font-medium text-stone-800 whitespace-nowrap">
-                      <div>{getRWName(item.rw_id)}</div>
-                      <div className="text-[11px] text-stone-500">{getRTName(item.rt_id)}</div>
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-stone-900 whitespace-nowrap">
-                      {item.weight.toLocaleString('id-ID')} Kg
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="inline-flex items-center gap-1.5">
-                        <button
-                          onClick={() => setDetailDeposit(item)}
-                          className="px-2 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100 border border-stone-300 rounded-md transition-colors inline-flex items-center gap-1"
-                          title="Lihat Detail"
-                        >
-                          <Eye className="w-3 h-3 text-stone-600" />
-                          <span>Detail</span>
-                        </button>
-                        <button
-                          onClick={() => setReceiptDeposit(item)}
-                          className="px-2 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100 border border-stone-300 rounded-md transition-colors inline-flex items-center gap-1"
-                          title="Cetak Resi Timbang"
-                        >
-                          <Printer className="w-3 h-3 text-stone-600" />
-                          <span>Resi</span>
-                        </button>
-                        {canEdit && (
-                          <>
-                            <button
-                              onClick={() => onEditDeposit(item)}
-                              className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 border border-emerald-300 rounded-md transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setDeletingDeposit(item)}
-                              className="px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 rounded-md transition-colors"
-                            >
-                              Hapus
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {paginated.map((item, index) => (
+                <tr key={item.id} className="hover:bg-stone-50/70 transition-colors">
+                  <td className="py-3 px-4 text-center text-xs text-stone-400 font-medium">
+                    {(currentPage - 1) * pageSize + index + 1}
+                  </td>
+                  <td className="py-3 px-4 text-xs font-medium text-stone-700 whitespace-nowrap">
+                    {item.date}
+                    <span className="block text-[11px] text-stone-400 font-normal">{item.day}</span>
+                  </td>
+                  <td className="py-3 px-4 text-xs font-mono font-semibold text-emerald-800 whitespace-nowrap">
+                    {item.transaction_no}
+                  </td>
+                  <td className="py-3 px-4 text-xs">
+                    <div className="font-semibold text-stone-900">
+                      {item.citizen_name || <span className="text-stone-400 font-normal italic">Warga Setempat</span>}
+                    </div>
+                    {item.notes && (
+                      <span className="block text-[11px] text-stone-500 line-clamp-1" title={item.notes}>
+                        {item.notes}
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 font-semibold text-stone-900">
+                    {getProgramName(item.program_id)}
+                  </td>
+                  <td className="py-3 px-4 text-xs font-medium text-stone-800 whitespace-nowrap">
+                    <div>{getRWName(item.rw_id)}</div>
+                    <div className="text-[11px] text-stone-500">{getRTName(item.rt_id)}</div>
+                  </td>
+                  <td className="py-3 px-4 text-right font-bold text-stone-900 whitespace-nowrap">
+                    {item.weight.toLocaleString('id-ID')} Kg
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        onClick={() => setReceiptDeposit(item)}
+                        className="px-2 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100 border border-stone-300 rounded-md transition-colors inline-flex items-center gap-1"
+                        title="Cetak Resi Timbang"
+                      >
+                        <Printer className="w-3 h-3 text-stone-600" />
+                        <span>Resi</span>
+                      </button>
+                      <button
+                        onClick={() => onEditDeposit(item)}
+                        className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 border border-emerald-300 rounded-md transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setDeletingDeposit(item)}
+                        className="px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 rounded-md transition-colors"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-xs text-stone-400">
+                  <td colSpan={7} className="py-12 text-center text-xs text-stone-400">
                     Tidak ada data setoran yang cocok dengan filter.
                   </td>
                 </tr>
@@ -397,14 +386,7 @@ export const AdminDepositView: React.FC<AdminDepositViewProps> = ({
           onClose={() => setReceiptDeposit(null)}
         />
       )}
-
-      {/* Deposit Detail Modal (hanya lihat) */}
-      {detailDeposit && (
-        <TransactionDetailModal
-          item={{ type: 'deposit', data: detailDeposit }}
-          onClose={() => setDetailDeposit(null)}
-        />
-      )}
     </div>
   );
 };
+

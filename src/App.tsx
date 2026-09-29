@@ -39,19 +39,24 @@ import { Deposit, Sale, Utilization, Program, BiomassEntry } from './types';
 const LOGIN_HASH = '#/masuk-pengurus';
 
 const MainContent: React.FC = () => {
-  const { isAdmin, hydrated } = useApp();
+  const { isAdmin, isStaff, user, hydrated } = useApp();
 
   // Mode: 'public' or 'admin'. When admin logs in, default to 'admin'
   const [viewMode, setViewMode] = useState<'public' | 'admin'>('public');
 
-  // Auto-switch to admin view when login succeeds
+  // Auto-switch to admin view when login succeeds & route to their assigned section
   useEffect(() => {
     if (isAdmin) {
       setViewMode('admin');
+      if (isStaff && user?.assignedProgramId === 'prog-aren') {
+        setAdminMenu('biomassa-aren');
+      } else if (isStaff && user?.assignedProgramId === 'prog-kayu') {
+        setAdminMenu('biomassa-kayu');
+      }
     } else {
       setViewMode('public');
     }
-  }, [isAdmin]);
+  }, [isAdmin, isStaff, user?.assignedProgramId]);
 
   // Public active tab
   const [publicTab, setPublicTab] = useState<string>('beranda');
@@ -63,6 +68,7 @@ const MainContent: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showBiomassModal, setShowBiomassModal] = useState(false);
+  const [biomassCategory, setBiomassCategory] = useState<'aren' | 'kayu' | 'all'>('aren');
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [showUtilModal, setShowUtilModal] = useState(false);
   const [showProgramModal, setShowProgramModal] = useState(false);
@@ -97,13 +103,18 @@ const MainContent: React.FC = () => {
     setShowDepositModal(true);
   };
 
-  const handleOpenAddBiomass = () => {
+  const handleOpenAddBiomass = (cat?: 'aren' | 'kayu') => {
     setEditingBiomass(null);
+    setBiomassCategory(cat || (adminMenu === 'biomassa-kayu' ? 'kayu' : 'aren'));
     setShowBiomassModal(true);
   };
 
   const handleOpenEditBiomass = (entry: BiomassEntry) => {
     setEditingBiomass(entry);
+    const isKayu =
+      (entry.biomass_type && entry.biomass_type.toLowerCase().includes('kayu')) ||
+      (entry.group_category && entry.group_category.toLowerCase().includes('indramayu'));
+    setBiomassCategory(isKayu ? 'kayu' : 'aren');
     setShowBiomassModal(true);
   };
 
@@ -168,9 +179,18 @@ const MainContent: React.FC = () => {
           />
         )}
 
-        {adminMenu === 'biomassa' && (
+        {(adminMenu === 'biomassa' || adminMenu === 'biomassa-aren') && (
           <AdminBiomassView
-            onAddBiomass={handleOpenAddBiomass}
+            initialCategory="aren"
+            onAddBiomass={(cat) => handleOpenAddBiomass(cat || 'aren')}
+            onEditBiomass={handleOpenEditBiomass}
+          />
+        )}
+
+        {adminMenu === 'biomassa-kayu' && (
+          <AdminBiomassView
+            initialCategory="kayu"
+            onAddBiomass={(cat) => handleOpenAddBiomass(cat || 'kayu')}
             onEditBiomass={handleOpenEditBiomass}
           />
         )}
@@ -182,22 +202,73 @@ const MainContent: React.FC = () => {
           />
         )}
 
-        {adminMenu === 'setoran' && (
+        {(adminMenu === 'setoran' || adminMenu === 'setoran-sampah') && (
           <AdminDepositView
+            programScope={isStaff ? undefined : 'prog-bank-sampah'}
             onAddDeposit={handleOpenAddDeposit}
             onEditDeposit={handleOpenEditDeposit}
           />
         )}
 
-        {adminMenu === 'penjualan' && (
+        {adminMenu === 'setoran-aren' && (
+          <AdminDepositView
+            programScope="prog-aren"
+            onAddDeposit={handleOpenAddDeposit}
+            onEditDeposit={handleOpenEditDeposit}
+          />
+        )}
+
+        {adminMenu === 'setoran-kayu' && (
+          <AdminDepositView
+            programScope="prog-kayu"
+            onAddDeposit={handleOpenAddDeposit}
+            onEditDeposit={handleOpenEditDeposit}
+          />
+        )}
+
+        {(adminMenu === 'penjualan' || adminMenu === 'penjualan-sampah') && (
           <AdminSaleView
+            programScope={isStaff ? undefined : 'prog-bank-sampah'}
             onAddSale={handleOpenAddSale}
             onEditSale={handleOpenEditSale}
           />
         )}
 
-        {adminMenu === 'pemanfaatan' && (
+        {adminMenu === 'penjualan-aren' && (
+          <AdminSaleView
+            programScope="prog-aren"
+            onAddSale={handleOpenAddSale}
+            onEditSale={handleOpenEditSale}
+          />
+        )}
+
+        {adminMenu === 'penjualan-kayu' && (
+          <AdminSaleView
+            programScope="prog-kayu"
+            onAddSale={handleOpenAddSale}
+            onEditSale={handleOpenEditSale}
+          />
+        )}
+
+        {(adminMenu === 'pemanfaatan' || adminMenu === 'pemanfaatan-sampah') && (
           <AdminUtilizationView
+            programScope={isStaff ? undefined : 'prog-bank-sampah'}
+            onAddUtilization={handleOpenAddUtil}
+            onEditUtilization={handleOpenEditUtil}
+          />
+        )}
+
+        {adminMenu === 'pemanfaatan-aren' && (
+          <AdminUtilizationView
+            programScope="prog-aren"
+            onAddUtilization={handleOpenAddUtil}
+            onEditUtilization={handleOpenEditUtil}
+          />
+        )}
+
+        {adminMenu === 'pemanfaatan-kayu' && (
+          <AdminUtilizationView
+            programScope="prog-kayu"
             onAddUtilization={handleOpenAddUtil}
             onEditUtilization={handleOpenEditUtil}
           />
@@ -232,6 +303,7 @@ const MainContent: React.FC = () => {
         {showBiomassModal && (
           <BiomassFormModal
             initialData={editingBiomass}
+            targetCategory={biomassCategory}
             onClose={() => {
               setShowBiomassModal(false);
               setEditingBiomass(null);

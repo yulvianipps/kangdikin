@@ -76,7 +76,7 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
     setEditingAccountId(acc.id);
     setFormName(acc.name);
     setFormEmail(acc.email);
-    setFormPassword(acc.password);
+    setFormPassword(acc.password || '');
     setFormRole(acc.role);
     setFormProgramId(acc.assignedProgramId || programs[0]?.id || 'prog-aren');
     setShowAddModal(true);
